@@ -1,0 +1,22 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment — never commit real credentials
+.env
+.env.local
+.env.production
+
+# Wrangler
+.wrangler/
+wrangler.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/

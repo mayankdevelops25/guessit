@@ -1,0 +1,16 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Analytics collection — server writes via Admin SDK, clients don't write directly
+    // Client analytics go through /api/analytics (Pages Function) which validates FR-9 events
+    match /analytics/{eventId} {
+      allow read: if false;
+      allow write: if false; // via Admin SDK only
+    }
+    // Future premium / archive collections
+    match /puzzles/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,27 @@
+# Cloudflare Pages Functions config — Option A (Cloudflare Pages + Functions + KV)
+name = "guess-of-the-day"
+compatibility_date = "2026-07-28"
+pages_build_output_dir = "dist"
+
+# KV for SESSION binds (anonymous sessions + streak + state)
+# Create: npx wrangler kv:namespace create SESSION_KV && npx wrangler kv:namespace create SESSION_KV --preview
+# Then uncomment:
+# [[kv_namespaces]]
+# binding = "SESSION_KV"
+# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+# preview_id = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+
+# ANALYTICS_KV optional for event buffering
+# [[kv_namespaces]]
+# binding = "ANALYTICS_KV"
+# id = "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+
+[vars]
+ENVIRONMENT = "production"
+# Share signing secret — rotate to invalidate old share tokens
+SHARE_SECRET = "gotd-v1-secret-change-me-in-prod"
+
+# Rate limiting (dashboard): Security -> Rate limiting rules
+# Rule 1: /api/chip  — 80 req/min per IP+Session
+# Rule 2: /api/guess — 30 req/min per IP+Session
+# DDoS is automatic via orange-cloud proxy

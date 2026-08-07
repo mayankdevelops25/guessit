@@ -1,0 +1,20 @@
+{
+  "name": "Guess of the Day",
+  "short_name": "GOTD",
+  "description": "A daily deduction puzzle — tap yes/no chips to narrow the pool and guess the hidden answer in the fewest taps.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFFBF0",
+  "theme_color": "#0F0F0F",
+  "categories": ["games", "puzzle", "daily"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "screenshots": [
+    { "src": "/screenshots/wide.png", "sizes": "1280x720", "type": "image/png", "form_factor": "wide" }
+  ],
+  "prefer_related_applications": false
+}
