@@ -19,21 +19,16 @@ export const onRequestOptions: PagesFunction<Env> = async () => new Response(nul
 
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const sid = ctx.request.headers.get('X-Session-Id') || ''
-  const ip = ctx.request.headers.get('CF-Connecting-IP') || ctx.request.headers.get('x-forwarded-for') || 'local'
-  const ua = ctx.request.headers.get('User-Agent') || 'unknown'
   const store = getStore(ctx.env as any)
 
   let id = sid && isValidSessionId(sid) ? sid : crypto.randomUUID()
   let sess = await store.get(id)
   let isNew = false
   if (!sess) {
-    // if client sent an id that doesn't exist, honor it (prevents rotation)
-    sess = newSession(id, ip, ua)
+    sess = newSession(id)
     isNew = true
   } else {
     sess.lastSeen = Date.now()
-    sess.ip = ip
-    sess.ua = ua
   }
   await store.put(sess)
 

@@ -30,26 +30,31 @@ const SECTIONS: Record<DocId, DocSection[]> = {
     { h: 'Information we process', body: [
       'Session identifier: a random, anonymous ID stored in your browser to keep your streak and puzzle progress consistent. It contains no name, email, or other personal information.',
       'Game progress: chips you asked, guesses made, taps used, and completion state, stored locally and mirrored to our servers only so your progress can be restored if you clear your browser data.',
-      'Analytics events: anonymous counts of game starts, chip taps, completions and share actions. No answer data or personal identifiers are attached.',
+      'Analytics events: anonymous counts of game starts, chip taps, completions and share actions. No personal identifiers are attached. Analytics are only collected after you give consent.',
+    ] },
+    { h: 'Legal basis for processing', body: [
+      'Session and game progress (essential storage): Legitimate interest — strictly necessary to provide the core game service (streaks, progress restore) and cannot be turned off.',
+      'Anonymous analytics: Consent — only processed after you accept via the cookie banner or privacy preferences. You may withdraw consent at any time.',
+      'Abuse prevention and rate limiting: Legitimate interest — transient request metadata (not stored) is used to enforce rate limits and keep the service fair for all players.',
     ] },
     { h: 'How we use it', body: [
       'To run the game (progress, streaks), to prevent cheating (server-validated sessions), and to improve the game (aggregate analytics). We do not sell personal information.',
     ] },
     { h: 'Analytics providers', body: [
-      'Firebase Analytics (Google) and Cloudflare Web Analytics may process the anonymous events above. You can disable analytics at any time via Manage Privacy Preferences in the footer. Your browser is not added to any advertising or cross-site tracking networks.',
+      'Firebase Analytics (Google LLC) and Cloudflare Web Analytics may process the anonymous events above after consent is given. Your browser is not added to any advertising or cross-site tracking networks.',
     ] },
     { h: 'Third-party images', body: [
-      'Some game tiles load images from third-party CDNs (flags, brand logos, portraits). Your browser may contact those providers to load the images; they do not receive gameplay data.',
+      'Some game tiles load images from third-party CDNs. Your browser may contact these providers to load images; they do not receive gameplay data. The providers are: flagcdn.com (country flags), icons.duckduckgo.com (brand logos), en.wikipedia.org (historical portraits), and www.google.com (favicon fallbacks).',
     ] },
     { h: 'Retention & security', body: [
       'Anonymous sessions expire after 90 days of inactivity. Analytics are retained in aggregated form. We use edge-network protections and rate limiting to keep the service safe.',
     ] },
     { h: 'Your choices & rights', body: [
-      'You can clear your progress and session at any time by clearing your browser storage for this site. You can opt out of analytics via Manage Privacy Preferences. Depending on your region you may have rights to access, correct or delete data; contact us using the details below.',
+      'You can clear your progress and session at any time by clearing your browser storage for this site. You can opt out of analytics via Manage Privacy Preferences in the footer. Depending on your region you may have rights to access, correct or delete data; contact us using the details below.',
       'Contact: support@guessofday.game',
     ] },
     { h: 'Changes', body: [
-      'If we change this policy, we will update the date below and note the change here. Effective: January 1, 2026.',
+      'If we change this policy, we will update the date below and note the change here. Effective: August 2026.',
     ] },
   ],
   terms: [
@@ -69,27 +74,27 @@ const SECTIONS: Record<DocId, DocSection[]> = {
       'Game content, code, and design are our property or used with permission. Emoji, flags, logos and portraits shown in-game belong to their respective owners and are used for identification purposes only.',
     ] },
     { h: 'Contact', body: [
-      'Questions about these terms: support@guessofday.game. Effective: January 1, 2026.',
+      'Questions about these terms: support@guessofday.game. Effective: August 2026.',
     ] },
   ],
   cookies: [
     { h: 'What we use', body: [
-      'Guess of the Day is a static site that uses browser local storage (and, for some anonymous session handling, a cookie) rather than tracking cookies. We use no advertising cookies.',
+      'Guess of the Day uses browser local storage (and, for anonymous session handling, a strictly-necessary session cookie) rather than tracking cookies. We use no advertising cookies.',
     ] },
     { h: 'Essential storage', body: [
       'Session ID, streak, history, and preferences (including this choice). These are required for the game to work and cannot be turned off.',
     ] },
     { h: 'Analytics', body: [
-      'When enabled, Firebase Analytics and Cloudflare Web Analytics process anonymous event data. This is used only to understand how the game is played. You can turn it off in Manage Privacy Preferences.',
+      'When enabled, Firebase Analytics (Google LLC) and Cloudflare Web Analytics process anonymous event data. This is used only to understand how the game is played. You can turn it off in Manage Privacy Preferences.',
     ] },
     { h: 'Third-party images', body: [
-      'Flag, logo and portrait images load from third-party CDNs. Those providers may log standard request data (such as IP address) as part of normal web operations.',
+      'Flag, logo and portrait images load from third-party CDNs (flagcdn.com, icons.duckduckgo.com, en.wikipedia.org, www.google.com). Those providers may log standard request data such as IP address as part of normal web operations.',
     ] },
     { h: 'Managing your choices', body: [
       'Use Manage Privacy Preferences in the footer, or your browser settings, to control storage. Clearing your browser data for this site removes all stored information.',
     ] },
     { h: 'Updates', body: [
-      'We will update this policy if our practices change. Effective: January 1, 2026.',
+      'We will update this policy if our practices change. Effective: August 2026.',
     ] },
   ],
   sale: [
@@ -103,7 +108,7 @@ const SECTIONS: Record<DocId, DocSection[]> = {
       'Because no purchases currently exist, there is nothing to refund. If paid features launch, you will have the right to cancel and request a refund within 14 days of purchase where required by applicable consumer law.',
     ] },
     { h: 'Contact', body: [
-      'For anything related to this page: support@guessofday.game. Effective: January 1, 2026.',
+      'For anything related to this page: support@guessofday.game. Effective: August 2026.',
     ] },
   ],
 }

@@ -15,8 +15,6 @@ export type Session = {
   id: string
   createdAt: number
   lastSeen: number
-  ip: string
-  ua: string
   streak: SessionStreak
   history: Record<string, { taps: number; won: boolean; label: string; ts: number }>
   states: Record<string, SessionState>
@@ -46,13 +44,11 @@ export function getStore(env: any): {
   }
 }
 
-export function newSession(id: string, ip: string, ua: string): Session {
+export function newSession(id: string): Session {
   return {
     id,
     createdAt: Date.now(),
     lastSeen: Date.now(),
-    ip,
-    ua,
     streak: { count: 0, lastDate: null, freezeAvailable: true },
     history: {},
     states: {},

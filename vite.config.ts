@@ -20,8 +20,8 @@ function mockBackend(): Plugin {
   const isConsecutive = (last: string | null, cur: string) => (last ? yesterdayStr(cur) === last : false);
   const getSession = (id: string) => sessions.get(id) || null;
   const putSession = (s: any) => { sessions.set(s.id, s); };
-  const newSession = (id: string, ip: string, ua: string) => ({
-    id, createdAt: Date.now(), lastSeen: Date.now(), ip, ua,
+  const newSession = (id: string) => ({
+    id, createdAt: Date.now(), lastSeen: Date.now(),
     streak: { count: 0, lastDate: null, freezeAvailable: true },
     history: {}, states: {},
   });
@@ -50,7 +50,7 @@ function mockBackend(): Plugin {
             const id = isValidSid(sid) ? sid : "ss-" + Math.random().toString(36).slice(2) + Date.now().toString(36);
             let sess = getSession(id);
             let isNew = false;
-            if (!sess) { sess = newSession(id, (req.headers["x-forwarded-for"] as string) || "local", (req.headers["user-agent"] as string) || "dev"); isNew = true; }
+            if (!sess) { sess = newSession(id); isNew = true; }
             else sess.lastSeen = Date.now();
             putSession(sess);
             res.setHeader("Cache-Control", "no-store");
@@ -101,7 +101,7 @@ function mockBackend(): Plugin {
             if (!body?.date || !isDate(body.date)) return json({ ok: false, error: "invalid date" }, 400);
             if (!Array.isArray(body.asked) || body.asked.length !== body.taps) return json({ ok: false, error: "taps mismatch" }, 400);
             let sess = getSession(sid);
-            if (!sess) { sess = newSession(sid, "local", "dev"); putSession(sess); }
+            if (!sess) { sess = newSession(sid); putSession(sess); }
             const existing = sess.states[body.date];
             if (existing?.completed && !body.completed) return json({ ok: true, date: body.date, state: existing });
             const next = { asked: body.asked.slice(0, 20), taps: body.taps, guessAttempts: Math.max(0, Math.min(10, Number(body.guessAttempts) || 0)), completed: !!body.completed, won: body.won === true ? true : body.won === false ? false : null, updatedAt: Date.now() };
@@ -147,7 +147,7 @@ function mockBackend(): Plugin {
           const hidden = getDailyAnswer(body.date);
           const result = chip.check(hidden);
           if (isValidSid(sid)) {
-            let sess = getSession(sid); if (!sess) { sess = newSession(sid, "local", "dev"); putSession(sess); }
+            let sess = getSession(sid); if (!sess) { sess = newSession(sid); putSession(sess); }
             const st = sess.states[body.date] || { asked: [], taps: 0, guessAttempts: 0, completed: false, won: null, updatedAt: Date.now() };
             st.asked.push({ id: body.chipId, text: chip.text, result }); st.taps = st.asked.length; st.updatedAt = Date.now();
             sess.states[body.date] = st; sess.lastSeen = Date.now(); putSession(sess);
@@ -165,7 +165,7 @@ function mockBackend(): Plugin {
           const correct = hidden.id === body.guessId;
           let streakOut: any;
           if (isValidSid(sid)) {
-            let sess = getSession(sid); if (!sess) { sess = newSession(sid, "local", "dev"); putSession(sess); }
+            let sess = getSession(sid); if (!sess) { sess = newSession(sid); putSession(sess); }
             const alreadyCompleted = sess.states[body.date]?.completed && sess.states[body.date]?.won === true;
             if (correct && !alreadyCompleted) {
               const last = sess.streak.lastDate;

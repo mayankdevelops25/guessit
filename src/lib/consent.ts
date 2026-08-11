@@ -35,10 +35,10 @@ export function hasConsent() {
   return getConsent() !== null
 }
 
-/** Analytics events may fire only when the player hasn't opted out. */
+/** Analytics events may fire only when the player has explicitly consented. */
 export function analyticsAllowed(): boolean {
   const c = getConsent()
-  if (!c) return true // anonymous events start until the player chooses (banner informs them)
+  if (!c) return false // no consent recorded yet — stay silent until player chooses
   return c.analytics
 }
 

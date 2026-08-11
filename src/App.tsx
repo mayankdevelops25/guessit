@@ -133,6 +133,10 @@ export default function App() {
   const [sessionId, setSessionId] = useState<string>(() => ensureLocalSessionId())
   const [shareToken, setShareToken] = useState<string | null>(null)
   const [hideEliminated, setHideEliminated] = useState(true)
+  // near-miss reveal + guess-limit system
+  const [revealPending, setRevealPending] = useState(false)
+  const [maxWrongGuesses, setMaxWrongGuesses] = useState<number | null>(null)
+  const [wrongGuessesUsed, setWrongGuessesUsed] = useState(0)
 
   // docs & privacy preferences
   const [docView, setDocView] = useState<DocId | null>(() => {
@@ -369,6 +373,8 @@ export default function App() {
     setAsked([])
     setTaps(0)
     setGuessAttempts(0)
+    setMaxWrongGuesses(null)
+    setWrongGuessesUsed(0)
     setPracticeMode(false)
     setEliminatedIds(new Set())
     setVanishedIds(new Set())
@@ -392,6 +398,8 @@ export default function App() {
     setAsked([])
     setTaps(0)
     setGuessAttempts(0)
+    setMaxWrongGuesses(null)
+    setWrongGuessesUsed(0)
     setPracticeMode(true)
     setEliminatedIds(new Set())
     setVanishedIds(new Set())
@@ -431,6 +439,8 @@ export default function App() {
     setAsked([])
     setTaps(0)
     setGuessAttempts(0)
+    setMaxWrongGuesses(null)
+    setWrongGuessesUsed(0)
     setPracticeMode(false)
     setEliminatedIds(new Set())
     setVanishedIds(new Set())
@@ -574,16 +584,42 @@ export default function App() {
       analytics.guess({ guessId: answer.id, correct: true, attempts: guessAttempts + 1, taps: tapsUsed })
       analytics.complete({ won: true, taps: tapsUsed, attempts: guessAttempts + 1, date: selectedDate, puzzleNo: puzzleNumber(selectedDate.startsWith('practice') ? today : selectedDate) })
     } else {
+      // Determine max wrong guesses on first wrong guess based on pool size at that moment
+      let currentMax = maxWrongGuesses
+      if (currentMax === null) {
+        currentMax = candidates.length >= 4 ? 2 : 1
+        setMaxWrongGuesses(currentMax)
+      }
+      const newWrongCount = wrongGuessesUsed + 1
+      setWrongGuessesUsed(newWrongCount)
+
+      const newCandidates = candidates.filter(c => c.id !== answer.id)
       setWrongGuessId(answer.id)
       setGuessAttempts(a => a + 1)
       setShake(true)
       setTimeout(() => setShake(false), 400)
-      setTimeout(() => setWrongGuessId(null), 800)
       playWrongGuess()
       try { navigator.vibrate?.(30) } catch {}
-      setCandidates(prev => prev.filter(c => c.id !== answer.id))
-      setEliminatedIds(prev => new Set([...prev, answer.id]))
-      if (!practiceMode) syncState(selectedDate, { asked, taps, guessAttempts: guessAttempts + 1, completed: false, won: null }).catch(()=>{})
+
+      if (newWrongCount >= currentMax) {
+        // ❌ Lives exhausted — near-miss reveal then game over
+        setRevealPending(true)
+        setTimeout(() => {
+          setWrongGuessId(null)
+          setRevealPending(false)
+          setGameState('lost')
+          const isDaily = !practiceMode && !selectedDate.startsWith('practice')
+          if (isDaily) setHistory(h => ({ ...h, [selectedDate]: { taps, won: false, label: hidden.label } }))
+          if (!practiceMode) syncState(selectedDate, { asked, taps, guessAttempts: guessAttempts + 1, completed: true, won: false }).catch(()=>{})
+          analytics.complete({ won: false, taps, attempts: guessAttempts + 1, date: selectedDate, puzzleNo: puzzleNumber(selectedDate.startsWith('practice') ? today : selectedDate) })
+        }, 900)
+      } else {
+        // Still has guesses left — eliminate wrong answer and continue
+        setTimeout(() => setWrongGuessId(null), 800)
+        setCandidates(newCandidates)
+        setEliminatedIds(prev => new Set([...prev, answer.id]))
+        if (!practiceMode) syncState(selectedDate, { asked, taps, guessAttempts: guessAttempts + 1, completed: false, won: null }).catch(()=>{})
+      }
       analytics.guess({ guessId: answer.id, correct: false, attempts: guessAttempts + 1, taps })
     }
   }
@@ -620,6 +656,17 @@ export default function App() {
     return out
   }, [today])
 
+  // Archive dates older than 7 days — locked (premium placeholder)
+  const olderArchiveDates = useMemo(() => {
+    const out: string[] = []
+    for (let i = 7; i < 30; i++) {
+      const d = new Date(today + 'T12:00:00')
+      d.setDate(d.getDate() - i)
+      out.push(d.toISOString().split('T')[0])
+    }
+    return out
+  }, [today])
+
   const score = Math.max(200, 1000 - (taps * 95) - (guessAttempts * 70) + (remaining <= 5 ? 50 : 0))
 
   return (
@@ -646,6 +693,7 @@ export default function App() {
         :focus-visible { outline: 2px solid #0F0F0F; outline-offset: 2px; border-radius: 4px; }
         .scrollbar-none { scrollbar-width: none; -ms-overflow-style: none; }
         .scrollbar-none::-webkit-scrollbar { display: none; }
+        @keyframes fadeIn { 0% { opacity: 0 } 100% { opacity: 1 } }
       `}</style>
 
       <header className="sticky top-0 z-40 bg-[#FFFBF0]/80 backdrop-blur-xl border-b border-black/10">
@@ -713,15 +761,11 @@ export default function App() {
 
                 <div className="mt-6 flex flex-wrap gap-3">
                   <button onClick={startDaily} className="group flex items-center gap-3 bg-black text-white rounded-full px-7 h-[54px] font-extrabold text-[16px] tracking-tight hover:bg-[#1A1A1A] transition-colors shadow-[4px_4px_0px_0px_rgba(0,0,0,0.15)] active:translate-y-[1px] active:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.15)]">
-                    PLAY TODAY’S PUZZLE
+                    PLAY TODAY'S PUZZLE
                     <span className="w-8 h-8 rounded-full bg-[#FFE03C] text-black grid place-items-center group-hover:rotate-12 transition-transform">→</span>
                   </button>
                   <button onClick={startPractice} className="h-[54px] px-6 rounded-full bg-white border-2 border-black font-extrabold text-[14px] hover:bg-black hover:text-white transition-colors">PRACTICE RANDOM</button>
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <button onClick={() => setShowHowTo(true)} className="h-10 px-4 rounded-full bg-white border border-black/10 font-extrabold text-[12px] hover:bg-black hover:text-white transition-colors">HOW TO PLAY</button>
-                  <button onClick={() => setShowTimeLeft(true)} className="h-10 px-4 rounded-full bg-white border border-black/10 font-extrabold text-[12px] hover:bg-black hover:text-white transition-colors">TIME LEFT</button>
+                  <button onClick={() => setShowHowTo(true)} className="h-[54px] px-5 rounded-full bg-white border-2 border-black font-extrabold text-[13px] hover:bg-black hover:text-white transition-colors">HOW TO PLAY</button>
                 </div>
 
                   <div className="mt-7 hidden md:grid grid-cols-3 gap-3 max-w-[520px]">
@@ -786,7 +830,7 @@ export default function App() {
                   </div>
 
                   <div className="mt-4 grid grid-cols-3 divide-x divide-black/10 bg-[#F7F7F7] rounded-2xl border border-black/10 overflow-hidden text-center">
-                    <div className="py-3"><div className="font-display text-[20px] leading-none">100%</div><div className="text-[10px] font-black tracking-widest text-black/50">COMPLETION</div></div>
+                    <div className="py-3"><div className="font-display text-[20px] leading-none">{Object.keys(history).length > 0 ? `${Math.round((Object.values(history).filter(v => v.won).length / Object.keys(history).length) * 100)}%` : '–'}</div><div className="text-[10px] font-black tracking-widest text-black/50">COMPLETION</div></div>
                     <div className="py-3"><div className="font-display text-[20px] leading-none">{streak.count || 0}🔥</div><div className="text-[10px] font-black tracking-widest text-black/50">STREAK</div></div>
                     <div className="py-3"><div className="font-display text-[20px] leading-none">{Object.keys(history).length}</div><div className="text-[10px] font-black tracking-widest text-black/50">PLAYED</div></div>
                   </div>
@@ -897,6 +941,14 @@ export default function App() {
             </div>
 
             <div className={`mt-4 bg-white rounded-[24px] border-2 overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-colors ${poolState === 'guess' ? 'border-[#0EA5A4]' : poolState === 'stall' ? 'border-amber-400' : 'border-black'}`}>
+              {/* Pool state label — text alongside color for colorblind accessibility */}
+              {poolState !== 'neutral' && gameState === 'playing' && (
+                <div className={`px-4 pt-2 pb-0 text-[10px] font-black tracking-[0.12em] ${
+                  poolState === 'guess' ? 'text-[#0EA5A4]' : poolState === 'stall' ? 'text-amber-600' : 'text-emerald-600'
+                }`}>
+                  {poolState === 'guess' ? '● GUESS NOW — pool is small enough' : poolState === 'stall' ? '◐ STALLING — chips splitting weakly' : '● NARROWING'}
+                </div>
+              )}
               <div className={`h-2 w-full bg-black/5 relative overflow-hidden`}>
                 <div className={`h-full transition-all duration-700 ease-out ${poolState === 'guess' ? 'bg-[#0EA5A4]' : poolState === 'stall' ? 'bg-amber-400' : 'bg-emerald-500'}`} style={{ width: `${progress}%` }} />
                 {lastResult !== null && (
@@ -925,7 +977,9 @@ export default function App() {
                     </div>
                   </div>
 
-                <div className="mt-3 sm:mt-4 grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-13 gap-1.5 sm:gap-2 relative">
+                {/* On mobile: cap height so chips stay visible without full-page scroll */}
+                <div className="mt-3 sm:mt-4 sm:block max-h-[30vh] sm:max-h-none overflow-y-auto scrollbar-none rounded-xl">
+                <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-13 gap-1.5 sm:gap-2 relative">
                   {pool.map(a => {
                     if (hideEliminated && vanishedIds.has(a.id)) return null
 
@@ -957,6 +1011,7 @@ export default function App() {
                   {particles.map(p => (
                     <div key={p.id} className="absolute w-2 h-2 rounded-full bg-[#FFE03C] border border-black pointer-events-none float" style={{ left: `${p.x}%`, top: `${p.y}%` }} />
                   ))}
+                </div>
                 </div>
 
                 {asked.length > 0 && (
@@ -1043,11 +1098,31 @@ export default function App() {
                   </div>
                 )}
 
-                {remaining <= 5 && (
-                  <div className="mt-4 text-[11px] font-bold rounded-full px-3 py-2 text-center border bg-white text-black border-black">
-                    Pick wisely. Wrong guesses stay eliminated and your score drops per attempt.
-                  </div>
-                )}
+                {remaining <= 5 && (() => {
+                  // Show predicted lives if not yet guessed, actual lives once tracking started
+                  const livesTotal = maxWrongGuesses ?? (candidates.length >= 4 ? 2 : 1)
+                  const livesLeft = livesTotal - wrongGuessesUsed
+                  return (
+                    <div className="mt-4 flex items-center justify-between gap-3 bg-white/10 rounded-2xl px-4 py-2.5">
+                      <div className="text-[11px] font-black tracking-widest text-white/70">LIVES</div>
+                      <div className="flex items-center gap-2">
+                        {Array.from({ length: livesTotal }).map((_, i) => {
+                          const used = i < wrongGuessesUsed
+                          return (
+                            <div key={i} className={`w-7 h-7 rounded-full border-2 grid place-items-center font-black text-[12px] transition-all ${
+                              used ? 'bg-red-500 border-red-400 text-white scale-95' : 'bg-white border-black/20 text-black'
+                            }`}>
+                              {used ? '✕' : '♥'}
+                            </div>
+                          )
+                        })}
+                      </div>
+                      <div className={`text-[11px] font-black tracking-wide ${
+                        livesLeft === 1 ? 'text-red-300 animate-pulse' : 'text-white/50'
+                      }`}>{livesLeft === 1 ? 'LAST LIFE' : `${livesLeft} left`}</div>
+                    </div>
+                  )
+                })()}
               </div>
             </div>
 
@@ -1137,7 +1212,12 @@ export default function App() {
                     </div>
 
                     <div className="mt-5 grid grid-cols-2 gap-3">
-                      <button onClick={() => { setAsked([]); setCandidates([...pool]); setTaps(0); setGuessAttempts(0); setEliminatedIds(new Set()); setVanishedIds(new Set()); setWrongGuessId(null); setShareToken(null); setGameState('playing') }} className="h-12 rounded-full bg-white border-2 border-black font-black text-[12px] sm:text-[13px] hover:bg-black hover:text-white transition-colors">RESTART ↻</button>
+                      {/* RESTART disabled for today's daily once won — prevents score inflation */}
+                      <button
+                        onClick={() => { if (practiceMode || selectedDate !== today || gameState === 'lost') { setAsked([]); setCandidates([...pool]); setTaps(0); setGuessAttempts(0); setMaxWrongGuesses(null); setWrongGuessesUsed(0); setEliminatedIds(new Set()); setVanishedIds(new Set()); setWrongGuessId(null); setShareToken(null); setGameState('playing') } }}
+                        disabled={!practiceMode && selectedDate === today && gameState === 'won'}
+                        className="h-12 rounded-full bg-white border-2 border-black font-black text-[12px] sm:text-[13px] hover:bg-black hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-white disabled:hover:text-black"
+                      >RESTART ↻</button>
                       <button onClick={startPractice} className="h-12 rounded-full bg-black text-white font-black text-[12px] sm:text-[13px] hover:bg-zinc-800 transition-colors">PRACTICE →</button>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-3">
@@ -1145,7 +1225,9 @@ export default function App() {
                       <button onClick={() => setGameState('start')} className="h-11 rounded-full bg-white border-2 border-black font-black text-[13px]">HOME</button>
                     </div>
 
-                    <div className="mt-4 text-center text-[11px] font-bold text-black/40">Answer stays hidden until solved • {backendLive ? 'Server-verified' : backendLive === false ? 'Offline mode' : 'Checking backend…'}</div>
+                    <div className="mt-2 text-center">
+                      <a href={`mailto:support@guessofday.game?subject=Issue%20with%20puzzle%20%23${puzzleNumber(selectedDate.startsWith('practice') ? today : selectedDate)}`} className="text-[11px] font-bold text-black/30 hover:text-black/60 transition-colors underline underline-offset-2">Something wrong? Report it →</a>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1201,6 +1283,36 @@ export default function App() {
                   })}
                 </div>
 
+                {/* Older archive — locked premium gate */}
+                {olderArchiveDates.length > 0 && (
+                  <div className="mt-2">
+                    <div className="flex items-center gap-2 px-1 mb-2">
+                      <span className="text-[11px] font-black tracking-[0.1em] text-black/40">OLDER PUZZLES</span>
+                      <span className="text-[10px] font-bold bg-black/5 border border-black/10 rounded-full px-2 py-0.5 text-black/40">PREMIUM — COMING SOON</span>
+                    </div>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      {olderArchiveDates.slice(0, 4).map(d => {
+                        const cat = getDailyCategory(d)
+                        return (
+                          <div key={d} className="bg-white/50 rounded-2xl border border-black/5 p-3 sm:p-4 flex items-center gap-3 opacity-60">
+                            <div className="w-10 h-10 rounded-xl border border-black/10 grid place-items-center text-[18px] bg-[#FFFBF0] shrink-0">{cat.glyph}</div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-extrabold text-[12px] leading-tight">{formatDay(d)}</div>
+                              <div className="text-[11px] text-black/40 font-medium">{cat.label}</div>
+                            </div>
+                            <span className="text-[16px]">🔒</span>
+                          </div>
+                        )
+                      })}
+                      {olderArchiveDates.length > 4 && (
+                        <div className="sm:col-span-2 text-center text-[11px] font-bold text-black/30 py-2">
+                          +{olderArchiveDates.length - 4} more puzzles locked
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
           </div>
@@ -1235,32 +1347,49 @@ export default function App() {
         </div>
       )}
 
+      {/* Near-miss reveal overlay — lives exhausted, show THE ANSWER */}
+      {revealPending && (
+        <div className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center gap-5 p-6 animate-[fadeIn_0.15s_ease-out]">
+          <div className="text-[11px] font-black tracking-[0.2em] text-white/50">THE ANSWER WAS</div>
+          <div className="w-32 h-32 rounded-[32px] border-4 border-white/20 grid place-items-center mx-auto shadow-[0_0_80px_rgba(255,255,255,0.1)]"
+            style={{ backgroundColor: hidden.color || '#1a1a1a' }}>
+            <Glyph a={hidden} size={56} rounded="rounded-xl" />
+          </div>
+          <div className="font-display text-[36px] sm:text-[44px] leading-none tracking-tight text-white">{hidden.label}</div>
+          <div className="text-[13px] font-bold text-white/40">Better luck tomorrow 👀</div>
+        </div>
+      )}
+
       {/* How to Play */}
       {showHowTo && (
         <div className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm grid place-items-center p-4" onClick={() => setShowHowTo(false)}>
-          <div className="w-full max-w-[440px] bg-[#FFFBF0] rounded-[24px] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden" onClick={e => e.stopPropagation()}>
-            <div className="bg-black text-white px-5 py-4 flex items-center justify-between">
+          <div className="w-full max-w-[500px] bg-[#FFFBF0] rounded-[24px] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="bg-black text-white px-5 py-4 flex items-center justify-between shrink-0">
               <div>
                 <div className="font-display text-[20px] leading-none">HOW TO PLAY</div>
-                <div className="text-[11px] font-bold text-white/60 mt-1">No typing. Just tap.</div>
+                <div className="text-[11px] font-bold text-white/60 mt-1">No typing. No letters. Just tap.</div>
               </div>
-              <button onClick={() => setShowHowTo(false)} className="w-10 h-10 rounded-full bg-white text-black grid place-items-center font-black">✕</button>
+              <button onClick={() => setShowHowTo(false)} className="w-10 h-10 rounded-full bg-white text-black grid place-items-center font-black shrink-0">✕</button>
             </div>
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 overflow-y-auto scrollbar-none">
+
+              {/* Steps */}
               {[
-                ['1', 'Ask a chip', 'Tap any yes/no question. The answer is checked instantly.'],
-                ['2', 'Watch the pool shrink', 'Answers that no longer fit cross out, then vanish to keep the screen clean.'],
-                ['3', 'Make your guess', 'When 5 or fewer candidates remain, choose the hidden answer. Fewer taps is better.'],
-              ].map(([n, title, body]) => (
-                <div key={n} className="flex gap-3 bg-white border border-black/10 rounded-2xl p-3">
-                  <div className="w-8 h-8 rounded-full bg-black text-white grid place-items-center font-black text-[12px] shrink-0">{n}</div>
+                { n: '1', title: 'One hidden answer', body: 'Each day a single answer from the category is secretly chosen. Your job is to figure out which one.' },
+                { n: '2', title: 'Tap yes/no chips', body: 'Chips are plain-language questions. Tap one — you get YES or NO instantly. The pool shrinks in real time.' },
+                { n: '3', title: 'Guess when ≤5 remain', body: 'Once 5 or fewer candidates are left, the guess panel unlocks. You have limited lives — wrong guesses use them up.' },
+                { n: '4', title: 'Lives depend on pool size', body: 'Start guessing with 4–5 candidates → 2 lives. Start with 2–3 → 1 life. Use them all and the game is over.' },
+              ].map(({ n, title, body }) => (
+                <div key={n} className="flex gap-3 bg-white border border-black/10 rounded-2xl p-3.5">
+                  <div className="w-8 h-8 rounded-full bg-black text-white grid place-items-center font-black text-[12px] shrink-0 mt-0.5">{n}</div>
                   <div>
                     <div className="font-extrabold text-[14px]">{title}</div>
-                    <div className="text-[12px] leading-snug text-black/60 font-medium">{body}</div>
+                    <div className="text-[12px] leading-snug text-black/60 font-medium mt-1">{body}</div>
                   </div>
                 </div>
               ))}
-              <button onClick={() => setShowHowTo(false)} className="w-full h-11 rounded-full bg-[#FFE03C] border-2 border-black font-black text-[13px]">GOT IT</button>
+
+              <button onClick={() => setShowHowTo(false)} className="w-full h-11 rounded-full bg-[#FFE03C] border-2 border-black font-black text-[13px]">GOT IT →</button>
             </div>
           </div>
         </div>
