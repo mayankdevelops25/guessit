@@ -4,12 +4,11 @@ compatibility_date = "2026-07-28"
 pages_build_output_dir = "dist"
 
 # KV for SESSION binds (anonymous sessions + streak + state)
-# Create: npx wrangler kv:namespace create SESSION_KV && npx wrangler kv:namespace create SESSION_KV --preview
-# Then uncomment:
-# [[kv_namespaces]]
-# binding = "SESSION_KV"
-# id = "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-# preview_id = "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy"
+# Created with: npx wrangler kv namespace create SESSION_KV
+[[kv_namespaces]]
+binding = "SESSION_KV"
+id = "7573eb0a097440888a8124a2f0a726cc"
+preview_id = "f8742eae01834010b64f82d940ffd456"
 
 # ANALYTICS_KV optional for event buffering
 # [[kv_namespaces]]
@@ -18,8 +17,8 @@ pages_build_output_dir = "dist"
 
 [vars]
 ENVIRONMENT = "production"
-# Share signing secret — rotate to invalidate old share tokens
-SHARE_SECRET = "gotd-v1-secret-change-me-in-prod"
+# SHARE_SECRET is set as a Cloudflare secret (not here) — run:
+# npx wrangler secret put SHARE_SECRET
 
 # Rate limiting (dashboard): Security -> Rate limiting rules
 # Rule 1: /api/chip  — 80 req/min per IP+Session
