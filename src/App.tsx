@@ -147,7 +147,13 @@ export default function App() {
   const [showPrefs, setShowPrefs] = useState(false)
   const [showBanner, setShowBanner] = useState(() => !hasConsent())
   const [prefs, setPrefs] = useState(() => getConsent() || { essential: true, analytics: true, marketing: false })
-  const [showHowTo, setShowHowTo] = useState(false)
+  const [showHowTo, setShowHowTo] = useState(() => {
+    try { return !localStorage.getItem('gotd-seen-howto') } catch { return false }
+  })
+  const closeHowTo = () => {
+    setShowHowTo(false)
+    try { localStorage.setItem('gotd-seen-howto', '1') } catch {}
+  }
   const [showTimeLeft, setShowTimeLeft] = useState(false)
 
   // audio toggle
@@ -756,7 +762,7 @@ export default function App() {
                   </span>
                 </h1>
                 <p className="mt-4 text-[16px] sm:text-[18px] leading-relaxed text-black/70 max-w-[560px] font-medium">
-                  A hidden answer. Tap plain-language <span className="font-bold text-black underline decoration-[#FFE03C] decoration-4 underline-offset-2">yes/no chips</span> and the pool visibly shrinks. Guess in the fewest taps.
+                  A hidden answer. Tap <span className="font-bold text-black underline decoration-[#FFE03C] decoration-4 underline-offset-2">yes/no chips</span> and the pool visibly shrinks. Guess in the fewest taps.
                 </p>
 
                 <div className="mt-6 flex flex-wrap gap-3">
@@ -969,19 +975,14 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button onClick={() => setHideEliminated(!hideEliminated)} className="flex items-center gap-1.5 bg-[#FFFBF0] border border-black/10 hover:bg-black/5 rounded-full px-2.5 py-1.5 text-[10px] font-bold transition-colors h-8">
-                        <span className={`w-2 h-2 rounded-full ${hideEliminated ? 'bg-black' : 'bg-black/20'}`} />
-                        {hideEliminated ? 'HIDE ON' : 'HIDE OFF'}
-                      </button>
-                    </div>
+
                   </div>
 
                 {/* Scrollable pool constrained to viewport height so chips stay visible */}
                 <div className="mt-3 sm:mt-4 block max-h-[45vh] lg:max-h-[55vh] overflow-y-auto scrollbar-none rounded-xl">
                 <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-13 gap-1.5 sm:gap-2 relative">
                   {pool.map(a => {
-                    if (hideEliminated && vanishedIds.has(a.id)) return null
+                    if (vanishedIds.has(a.id)) return null
 
                     const isRemaining = candidates.some(c => c.id === a.id)
                     const isEliminated = eliminatedIds.has(a.id)
@@ -1034,7 +1035,13 @@ export default function App() {
                   <div className="font-display text-[16px] sm:text-[18px] leading-none tracking-tight">ASK A QUESTION</div>
                   <div className="text-[9px] sm:text-[11px] font-black tracking-widest bg-black text-white rounded-full px-2.5 py-1">{rankedChips.length} CHIPS</div>
                 </div>
-                <div className="text-[10px] sm:text-[11px] font-bold tracking-wide text-black/60 mt-1">TAP ANY CHIP. ANSWER IS INSTANT</div>
+                <div className="text-[10px] sm:text-[11px] font-black tracking-wide text-black/70 mt-1 uppercase">
+                  {remaining <= 5 
+                    ? '★ GUESS PANEL UNLOCKED — CHOOSE CAREFULLY' 
+                    : asked.length === 0 
+                    ? '👇 TAP A QUESTION CHIP BELOW TO NARROW THE POOL' 
+                    : 'KEEP TAPPING CHIPS UNTIL ≤5 CANDIDATES REMAIN'}
+                </div>
 
                 <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                   {rankedChips.map(({ chip, lowSignal }, idx) => (
@@ -1042,19 +1049,16 @@ export default function App() {
                       key={chip.id}
                       onClick={() => handleChipTap(chip)}
                       disabled={!!chipPending}
-                      className={`group relative text-left bg-white rounded-xl sm:rounded-2xl border-2 border-black p-2 sm:p-3.5 flex items-center gap-1.5 sm:gap-3 min-h-[52px] sm:min-h-[56px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[0px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-wait ${lowSignal ? 'opacity-80' : ''} ${chipPending === chip.id ? 'animate-pulse' : ''}`}
+                      className={`group relative text-left bg-white rounded-xl sm:rounded-2xl border-2 border-black p-2 sm:p-3.5 flex items-center gap-1.5 sm:gap-3 min-h-[52px] sm:min-h-[56px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[0px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-wait ${lowSignal ? 'opacity-80' : ''} ${chipPending === chip.id ? 'animate-pulse' : ''} ${asked.length === 0 && idx === 0 && gameState === 'playing' ? 'ring-2 ring-black ring-offset-2 animate-bounce' : ''}`}
                     >
                       <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-black text-white grid place-items-center text-[10px] sm:text-[11px] font-black shrink-0">{chipPending === chip.id ? '…' : idx + 1}</span>
                       <span className="font-extrabold text-[11px] sm:text-[14px] leading-[1.1] flex-1 line-clamp-2">{chip.text}</span>
-                      <span className="hidden sm:grid w-8 h-8 rounded-full bg-[#FFFBF0] border border-black/10 place-items-center text-[12px] group-hover:bg-black group-hover:text-white transition-colors shrink-0">→</span>
-                      {lowSignal && <span className="absolute -top-1.5 -right-1.5 sm:-top-2 sm:-right-2 text-[8px] sm:text-[10px] font-black bg-amber-400 border border-black rounded-full px-1 sm:px-1.5 py-0.5 leading-none">LOW</span>}
                     </button>
                   ))}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 text-[10px] sm:text-[11px] font-bold">
-                  <span className="inline-flex items-center gap-1.5 bg-white border border-black/10 rounded-full px-2.5 py-1"><span className="w-2 h-2 rounded-full bg-amber-400 border border-black/20" /> Low-signal = weak split</span>
-                  <button onClick={giveUp} className="ml-auto underline decoration-2 text-black/60 hover:text-black">Give up & reveal →</button>
+                <div className="mt-4 flex justify-end text-[10px] sm:text-[11px] font-bold">
+                  <button onClick={giveUp} className="underline decoration-2 text-black/60 hover:text-black">Give up & reveal →</button>
                 </div>
               </div>
 
@@ -1362,14 +1366,14 @@ export default function App() {
 
       {/* How to Play */}
       {showHowTo && (
-        <div className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm grid place-items-center p-4" onClick={() => setShowHowTo(false)}>
+        <div className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm grid place-items-center p-4" onClick={closeHowTo}>
           <div className="w-full max-w-[500px] bg-[#FFFBF0] rounded-[24px] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="bg-black text-white px-5 py-4 flex items-center justify-between shrink-0">
               <div>
                 <div className="font-display text-[20px] leading-none">HOW TO PLAY</div>
                 <div className="text-[11px] font-bold text-white/60 mt-1">No typing. No letters. Just tap.</div>
               </div>
-              <button onClick={() => setShowHowTo(false)} className="w-10 h-10 rounded-full bg-white text-black grid place-items-center font-black shrink-0">✕</button>
+              <button onClick={closeHowTo} className="w-10 h-10 rounded-full bg-white text-black grid place-items-center font-black shrink-0">✕</button>
             </div>
             <div className="p-5 space-y-3 overflow-y-auto scrollbar-none">
 
@@ -1389,7 +1393,7 @@ export default function App() {
                 </div>
               ))}
 
-              <button onClick={() => setShowHowTo(false)} className="w-full h-11 rounded-full bg-[#FFE03C] border-2 border-black font-black text-[13px]">GOT IT →</button>
+              <button onClick={closeHowTo} className="w-full h-11 rounded-full bg-[#FFE03C] border-2 border-black font-black text-[13px]">GOT IT →</button>
             </div>
           </div>
         </div>
