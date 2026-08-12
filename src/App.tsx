@@ -268,22 +268,13 @@ export default function App() {
       const no = candidates.length - yes
       const total = candidates.length
       const score = total === 0 ? 0 : 1 - Math.abs(yes - no) / total
-      const lowSignal = Math.min(yes, no) / total < 0.15
-      const split = `${yes}:${no}`
-      return { chip, score, yes, no, lowSignal, split }
+      return { chip, score }
     })
     scored.sort((a, b) => b.score - a.score)
     return scored.slice(0, 6)
   }, [candidates, asked])
 
-  const poolState: 'neutral' | 'progress' | 'stall' | 'guess' = useMemo(() => {
-    if (remaining <= 5) return 'guess'
-    if (asked.length === 0) return 'neutral'
-    const lastYes = asked[asked.length - 1]?.result
-    const prevLen = history[selectedDate]?.taps ? totalPool : candidates.length
-    if (remaining <= totalPool * 0.5 && remaining > 5) return 'progress'
-    return lastYes !== undefined && remaining > prevLen * 0.85 ? 'stall' : 'progress'
-  }, [remaining, asked, selectedDate, history, totalPool, candidates.length])
+
 
   // keyboard — 1-6 chips, Esc pause, G to guess
   useEffect(() => {
@@ -346,52 +337,54 @@ export default function App() {
   }
 
   const startDaily = async () => {
+    setShowHowTo(false)
     const cat = getDailyCategory(today)
     const h = getDailyAnswer(today)
     setCategory(cat)
     setHidden(h)
     setSelectedDate(today)
-    // try restore server progress first (Wordle resume)
-    let restored = false
-    if (backendLive !== false) {
-      try { restored = await restoreFromServer(today) } catch {}
-      // if already completed, show result (don't reset)
-      if (restored) {
-        setPracticeMode(false)
-        setLastResult(null)
-        setWrongGuessId(null)
-        // need to still fetch hidden? hidden already set locally for reveal; server never leaks but local is fine for completed puzzle
-        // also fetch share token for verified share
-        fetchShareToken(today).then(r=>{ if((r as any).ok) setShareToken((r as any).token)}).catch(()=>{})
-        analytics.gameStart({ date: today, category: cat.id, puzzleNo: puzzleNumber(today), mode: 'daily' })
-        if (restored) setGameState(prev => prev === 'start' ? 'won' : prev)
-        const check = await fetchState(today).catch(()=>null)
-        if (check?.state && !check.state.completed) setGameState('playing')
-        else if (!restored) {
-          setCandidates([...cat.answers]); setAsked([]); setTaps(0); setGuessAttempts(0); setEliminatedIds(new Set()); setVanishedIds(new Set()); setPracticeMode(false); setLastResult(null); setWrongGuessId(null); setGameState('playing')
-        }
-        try { await fetchDaily(today) } catch {}
-        return
-      }
-    }
+    setPracticeMode(false)
+    setLastResult(null)
+    setWrongGuessId(null)
     setCandidates([...cat.answers])
     setAsked([])
     setTaps(0)
     setGuessAttempts(0)
     setMaxWrongGuesses(null)
     setWrongGuessesUsed(0)
-    setPracticeMode(false)
     setEliminatedIds(new Set())
     setVanishedIds(new Set())
-    setLastResult(null)
-    setWrongGuessId(null)
     setShareToken(null)
     setGameState('playing')
+    window.scrollTo(0, 0)
+
+    // Restore active in-progress state if reloaded mid-game
+    if (backendLive !== false) {
+      try {
+        const r = await fetchState(today)
+        if (r?.state && !r.state.completed && r.state.asked?.length > 0) {
+          let cands: Answer[] = [...cat.answers]
+          for (const a of r.state.asked) {
+            const chip = cat.chips.find(ch => ch.id === a.id)
+            if (chip) cands = cands.filter(x => chip.check(x) === a.result)
+          }
+          setAsked(r.state.asked)
+          setTaps(r.state.taps)
+          setGuessAttempts(r.state.guessAttempts)
+          setCandidates(cands)
+          const elims = cat.answers.filter(x => !cands.some(c => c.id === x.id)).map(x => x.id)
+          setEliminatedIds(new Set(elims))
+          setVanishedIds(new Set(elims))
+        }
+      } catch {}
+    }
+
     try { await fetchDaily(today) } catch {}
     analytics.gameStart({ date: today, category: cat.id, puzzleNo: puzzleNumber(today), mode: 'daily' })
   }
 
   const startPractice = () => {
+    setShowHowTo(false)
     // practice picks a random category too — keeps both pools warm
     const cat = CATEGORIES[Math.floor(Math.random() * CATEGORIES.length)]
     let h: Answer
@@ -412,6 +405,7 @@ export default function App() {
     setWrongGuessId(null)
     setShareToken(null)
     setGameState('playing')
+    window.scrollTo(0, 0)
     analytics.practice({ randomId: h.id })
     analytics.gameStart({ date: 'practice', category: cat.id, puzzleNo: 0, mode: 'practice' })
   }
@@ -936,26 +930,15 @@ export default function App() {
                 <span className="hidden sm:inline text-[11px] font-mono2 bg-white/15 rounded-full px-2 py-0.5">{practiceMode ? 'RANDOM SEED' : `#${puzzleNumber(selectedDate)} • ${formatDay(selectedDate)}`}</span>
               </div>
               <div className="ml-auto flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-2 bg-white border border-black/10 rounded-full px-3 py-1.5 text-[12px] font-black">
-                  <span className="w-6 h-6 rounded-full bg-black text-white grid place-items-center text-[11px]">⚡</span> {score} PTS
-                </div>
                 <div className="flex items-center gap-1.5 bg-white border border-black/10 rounded-full px-3 py-1.5 text-[12px] font-black">
                   <span className="w-6 h-6 rounded-full bg-[#FFE03C] border border-black/10 grid place-items-center">◐</span> {taps} TAPS
                 </div>
               </div>
             </div>
 
-            <div className={`mt-4 bg-white rounded-[24px] border-2 overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-colors ${poolState === 'guess' ? 'border-[#0EA5A4]' : poolState === 'stall' ? 'border-amber-400' : 'border-black'}`}>
-              {/* Pool state label — text alongside color for colorblind accessibility */}
-              {poolState !== 'neutral' && gameState === 'playing' && (
-                <div className={`px-4 pt-2 pb-0 text-[10px] font-black tracking-[0.12em] ${
-                  poolState === 'guess' ? 'text-[#0EA5A4]' : poolState === 'stall' ? 'text-amber-600' : 'text-emerald-600'
-                }`}>
-                  {poolState === 'guess' ? '● GUESS NOW — pool is small enough' : poolState === 'stall' ? '◐ STALLING — chips splitting weakly' : '● NARROWING'}
-                </div>
-              )}
-              <div className={`h-2 w-full bg-black/5 relative overflow-hidden`}>
-                <div className={`h-full transition-all duration-700 ease-out ${poolState === 'guess' ? 'bg-[#0EA5A4]' : poolState === 'stall' ? 'bg-amber-400' : 'bg-emerald-500'}`} style={{ width: `${progress}%` }} />
+            <div className="mt-4 bg-white rounded-[24px] border-2 border-black overflow-hidden shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
+              <div className="h-2 w-full bg-black/5 relative overflow-hidden">
+                <div className="h-full bg-[#0EA5A4] transition-all duration-700 ease-out" style={{ width: `${progress}%` }} />
                 {lastResult !== null && (
                   <div className={`absolute inset-0 ${lastResult ? 'bg-emerald-400/30' : 'bg-red-400/30'} animate-pulse`} />
                 )}
@@ -964,7 +947,7 @@ export default function App() {
               <div className="px-3 sm:px-6 py-3 sm:py-5">
                   <div className="flex items-center justify-between gap-2 sm:gap-3">
                     <div className="flex items-center gap-2 sm:gap-3">
-                      <div className={`w-9 h-9 sm:w-11 sm:h-11 rounded-xl grid place-items-center text-white font-black text-[13px] sm:text-[14px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0 ${poolState === 'guess' ? 'bg-[#0EA5A4]' : poolState === 'stall' ? 'bg-amber-400 text-black' : 'bg-black'}`}>
+                      <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl grid place-items-center text-white font-black text-[13px] sm:text-[14px] border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0 bg-black">
                         {remaining}
                       </div>
                       <div className="min-w-0">
@@ -1043,12 +1026,12 @@ export default function App() {
                 </div>
 
                 <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
-                  {rankedChips.map(({ chip, lowSignal }, idx) => (
+                  {rankedChips.map(({ chip }, idx) => (
                     <button
                       key={chip.id}
                       onClick={() => handleChipTap(chip)}
                       disabled={!!chipPending}
-                      className={`group relative text-left bg-white rounded-xl sm:rounded-2xl border-2 border-black p-2 sm:p-3.5 flex items-center gap-1.5 sm:gap-3 min-h-[52px] sm:min-h-[56px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[0px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-wait ${lowSignal ? 'opacity-80' : ''} ${chipPending === chip.id ? 'animate-pulse' : ''} ${asked.length === 0 && idx === 0 && gameState === 'playing' ? 'ring-2 ring-black ring-offset-2 animate-bounce' : ''}`}
+                      className={`group relative text-left bg-white rounded-xl sm:rounded-2xl border-2 border-black p-2 sm:p-3.5 flex items-center gap-1.5 sm:gap-3 min-h-[52px] sm:min-h-[56px] hover:translate-y-[-2px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] active:translate-y-[0px] active:shadow-none transition-all disabled:opacity-50 disabled:cursor-wait ${chipPending === chip.id ? 'animate-pulse' : ''} ${asked.length === 0 && idx === 0 && gameState === 'playing' ? 'ring-2 ring-black ring-offset-2 animate-bounce' : ''}`}
                     >
                       <span className="w-6 h-6 sm:w-8 sm:h-8 rounded-full bg-black text-white grid place-items-center text-[10px] sm:text-[11px] font-black shrink-0">{chipPending === chip.id ? '…' : idx + 1}</span>
                       <span className="font-extrabold text-[11px] sm:text-[14px] leading-[1.1] flex-1 line-clamp-2">{chip.text}</span>
