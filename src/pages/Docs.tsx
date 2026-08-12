@@ -74,7 +74,7 @@ const SECTIONS: Record<DocId, DocSection[]> = {
       'Game content, code, and design are our property or used with permission. Emoji, flags, logos and portraits shown in-game belong to their respective owners and are used for identification purposes only.',
     ] },
     { h: 'Contact', body: [
-      'Questions about these terms: support@guessofday.game. Effective: August 2026.',
+      'Questions about these terms: mayankjaindd@gmail.com. Effective: August 2026.',
     ] },
   ],
   cookies: [
@@ -108,7 +108,7 @@ const SECTIONS: Record<DocId, DocSection[]> = {
       'Because no purchases currently exist, there is nothing to refund. If paid features launch, you will have the right to cancel and request a refund within 14 days of purchase where required by applicable consumer law.',
     ] },
     { h: 'Contact', body: [
-      'For anything related to this page: support@guessofday.game. Effective: August 2026.',
+      'For anything related to this page: mayankjaindd@gmail.com. Effective: August 2026.',
     ] },
   ],
 }
@@ -147,7 +147,7 @@ export default function DocsPage({ doc, onBack }: { doc: DocId; onBack: () => vo
       </div>
 
       <div className="mt-5 text-center text-[11px] font-bold text-black/40">
-        Questions? <span className="underline">support@guessofday.game</span>
+        Questions? <span className="underline">mayankjaindd@gmail.com</span>
       </div>
     </div>
   )
