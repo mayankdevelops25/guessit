@@ -132,7 +132,6 @@ export default function App() {
   const [chipPending, setChipPending] = useState<string | null>(null)
   const [sessionId, setSessionId] = useState<string>(() => ensureLocalSessionId())
   const [shareToken, setShareToken] = useState<string | null>(null)
-  const [hideEliminated, setHideEliminated] = useState(true)
   // near-miss reveal + guess-limit system
   const [revealPending, setRevealPending] = useState(false)
   const [maxWrongGuesses, setMaxWrongGuesses] = useState<number | null>(null)
