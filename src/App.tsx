@@ -46,7 +46,7 @@ function WikiGlyph({ a, size, rounded }: { a: Answer; size: number; rounded: str
     <img
       src={src} alt={`Portrait of ${a.label}`} loading="lazy" decoding="async"
       width={size} height={size}
-      className={`${rounded} object-cover border border-black/20 shadow-sm`}
+      className={`${rounded} object-cover`}
       style={{ width: size, height: size, backgroundColor: '#FFFBF0' }}
       onError={e => {
         const t = e.currentTarget as HTMLImageElement
@@ -73,7 +73,7 @@ function Glyph({ a, size = 26, rounded = 'rounded-[4px]' }: { a: Answer; size?: 
       <img
         src={flag} alt={`Flag of ${a.label}`} loading="lazy" decoding="async"
         width={Math.round(size * 1.5)} height={size}
-        className={`${rounded} object-cover border border-black/20 shadow-sm`}
+        className={`${rounded} object-cover`}
         style={{ width: Math.round(size * 1.5), height: size }}
         onError={e => { const t = e.currentTarget as HTMLImageElement; t.onerror = null; t.style.display = 'none'; const p = t.parentElement; if (p) p.innerHTML = `<span style="font-size:${size}px">${a.emoji}</span>` }}
       />
@@ -997,7 +997,7 @@ export default function App() {
                         `}
                         style={{ backgroundColor: isRemaining ? a.color : undefined }}
                       >
-                        <div className="leading-none -mt-0.5"><Glyph a={a} size={18} /></div>
+                        <div className="leading-none pb-4"><Glyph a={a} size={28} /></div>
                         <div className={`absolute bottom-0 inset-x-0 text-[8px] sm:text-[9px] font-black tracking-widest text-center py-1 truncate px-0.5 ${isRemaining ? 'bg-black text-white' : 'bg-black/10 text-black/50'}`}>{a.label.toUpperCase()}</div>
                         {!isRemaining && (
                           <div className="absolute inset-0 grid place-items-center">
