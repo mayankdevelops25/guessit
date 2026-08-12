@@ -724,20 +724,20 @@ export default function App() {
                   <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#0EA5A4] border border-white rounded-full" title="Freeze available: one missed day forgiven" />
                 )}
               </div>
-            <button onClick={() => { const v = !audioOn; setAudioOn(v); setAudioEnabled(v) }} aria-label={audioOn ? 'Mute sounds' : 'Unmute sounds'} className="w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] min-h-[36px] grid place-items-center rounded-full bg-white border border-black/10 hover:bg-black hover:text-white transition-colors" title={audioOn ? 'Sound on' : 'Sound off'}>
+            <button onClick={() => { const v = !audioOn; setAudioOn(v); setAudioEnabled(v) }} aria-label={audioOn ? 'Mute sounds' : 'Unmute sounds'} className="w-11 h-11 min-w-[44px] min-h-[44px] grid place-items-center rounded-full bg-white border border-black/10 hover:bg-black hover:text-white transition-colors" title={audioOn ? 'Sound on' : 'Sound off'}>
               {audioOn ? '🔊' : '🔇'}
             </button>
-            <button onClick={() => { analytics.archive({ action: 'open' }); setShowArchive(true) }} aria-label="Archive" className="w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] min-h-[36px] grid place-items-center rounded-full bg-white border border-black/10 hover:bg-black hover:text-white transition-colors">
+            <button onClick={() => { analytics.archive({ action: 'open' }); setShowArchive(true) }} aria-label="Archive" className="w-11 h-11 min-w-[44px] min-h-[44px] grid place-items-center rounded-full bg-white border border-black/10 hover:bg-black hover:text-white transition-colors">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 19V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v13" /><path d="M4 19a2 2 0 0 0 2 2h12" /><path d="M8 11h8" /><path d="M8 15h5" /></svg>
             </button>
-            <button onClick={() => setGameState(s => s === 'playing' ? 'paused' : s)} aria-label="Pause" className="w-9 h-9 sm:w-10 sm:h-10 min-w-[36px] min-h-[36px] grid place-items-center rounded-full bg-[#FFE03C] border border-black/10 font-extrabold">
+            <button onClick={() => setGameState(s => s === 'playing' ? 'paused' : s)} aria-label="Pause" className="w-11 h-11 min-w-[44px] min-h-[44px] grid place-items-center rounded-full bg-[#FFE03C] border border-black/10 font-extrabold">
               II
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-[1080px] mx-auto px-4 sm:px-6 pb-12">
+      <main className="max-w-[1080px] mx-auto px-4 sm:px-6 pb-[max(3rem,env(safe-area-inset-bottom))]">
 
         {/* Legal / help pages */}
         {docView ? (
@@ -977,8 +977,8 @@ export default function App() {
                     </div>
                   </div>
 
-                {/* On mobile: cap height so chips stay visible without full-page scroll */}
-                <div className="mt-3 sm:mt-4 sm:block max-h-[30vh] sm:max-h-none overflow-y-auto scrollbar-none rounded-xl">
+                {/* Scrollable pool constrained to viewport height so chips stay visible */}
+                <div className="mt-3 sm:mt-4 block max-h-[45vh] lg:max-h-[55vh] overflow-y-auto scrollbar-none rounded-xl">
                 <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-13 gap-1.5 sm:gap-2 relative">
                   {pool.map(a => {
                     if (hideEliminated && vanishedIds.has(a.id)) return null
@@ -997,7 +997,7 @@ export default function App() {
                         style={{ backgroundColor: isRemaining ? a.color : undefined }}
                       >
                         <div className="leading-none -mt-0.5"><Glyph a={a} size={18} /></div>
-                        <div className={`absolute bottom-0 inset-x-0 text-[8px] sm:text-[9px] font-black tracking-widest text-center py-1 truncate px-0.5 ${isRemaining ? 'bg-black text-white' : 'bg-black/10 text-black/50'}`}>{a.label.toUpperCase().slice(0, 8)}</div>
+                        <div className={`absolute bottom-0 inset-x-0 text-[8px] sm:text-[9px] font-black tracking-widest text-center py-1 truncate px-0.5 ${isRemaining ? 'bg-black text-white' : 'bg-black/10 text-black/50'}`}>{a.label.toUpperCase()}</div>
                         {!isRemaining && (
                           <div className="absolute inset-0 grid place-items-center">
                             <div className="w-full h-[2px] bg-black/20 rotate-45 absolute" />
@@ -1036,7 +1036,7 @@ export default function App() {
                 </div>
                 <div className="text-[10px] sm:text-[11px] font-bold tracking-wide text-black/60 mt-1">TAP ANY CHIP. ANSWER IS INSTANT</div>
 
-                <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-2 sm:gap-2.5">
+                <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-2.5">
                   {rankedChips.map(({ chip, lowSignal }, idx) => (
                     <button
                       key={chip.id}
@@ -1321,8 +1321,8 @@ export default function App() {
         </>
         )}
 
-        <footer className="mt-10 pt-6 border-t border-black/10 pb-8">
-          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-bold tracking-wide text-black/50">
+        <footer className="mt-6 pt-4 border-t border-black/10 pb-2">
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1.5 text-[10px] font-bold tracking-wide text-black/40">
             <button onClick={() => openDoc('sitemap')} className="underline underline-offset-2 hover:text-black transition-colors">Sitemap</button>
             <span aria-hidden>•</span>
             <button onClick={() => openDoc('privacy')} className="underline underline-offset-2 hover:text-black transition-colors">Privacy Policy</button>
@@ -1333,9 +1333,9 @@ export default function App() {
             <span aria-hidden>•</span>
             <button onClick={() => openDoc('sale')} className="underline underline-offset-2 hover:text-black transition-colors">Terms of Sale</button>
             <span aria-hidden>•</span>
-            <button onClick={() => setShowPrefs(true)} className="underline underline-offset-2 hover:text-black transition-colors">Manage Privacy Preferences</button>
+            <button onClick={() => setShowPrefs(true)} className="underline underline-offset-2 hover:text-black transition-colors">Manage Privacy</button>
           </div>
-          <div className="mt-2 text-center text-[11px] font-bold tracking-wide text-black/40">© {new Date().getFullYear()} GUESS OF THE DAY</div>
+          <div className="mt-1 text-center text-[10px] font-bold tracking-wide text-black/30">© {new Date().getFullYear()} GUESS OF THE DAY</div>
         </footer>
       </main>
 
