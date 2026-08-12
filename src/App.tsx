@@ -996,7 +996,7 @@ export default function App() {
                         `}
                         style={{ backgroundColor: isRemaining ? a.color : undefined }}
                       >
-                        <div className="leading-none pb-4"><Glyph a={a} size={28} /></div>
+                        <div className="leading-none pb-5 flex items-center justify-center"><Glyph a={a} size={44} rounded="rounded-xl" /></div>
                         <div className={`absolute bottom-0 inset-x-0 text-[8px] sm:text-[9px] font-black tracking-widest text-center py-1 truncate px-0.5 ${isRemaining ? 'bg-black text-white' : 'bg-black/10 text-black/50'}`}>{a.label.toUpperCase()}</div>
                         {!isRemaining && (
                           <div className="absolute inset-0 grid place-items-center">
