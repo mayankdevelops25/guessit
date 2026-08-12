@@ -1229,7 +1229,7 @@ export default function App() {
                     </div>
 
                     <div className="mt-2 text-center">
-                      <a href={`mailto:mayankjaindevelops25@gmail.com?subject=Issue%20with%20puzzle%20%23${puzzleNumber(selectedDate.startsWith('practice') ? today : selectedDate)}`} className="text-[11px] font-bold text-black/30 hover:text-black/60 transition-colors underline underline-offset-2">Something wrong? Report it →</a>
+                      <a href={`mailto:mayankjaindd@gmail.com?subject=Issue%20with%20puzzle%20%23${puzzleNumber(selectedDate.startsWith('practice') ? today : selectedDate)}`} className="text-[11px] font-bold text-black/30 hover:text-black/60 transition-colors underline underline-offset-2">Something wrong? Report it →</a>
                     </div>
                   </div>
                 </div>
