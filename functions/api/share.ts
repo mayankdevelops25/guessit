@@ -35,7 +35,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const taps = state.taps
   const streak = sess.streak.count
   const catLabel = getDailyCategory(date).label
-  const shareText = `Guess of the Day — Daily #${n} · ${catLabel}\nSolved in ${taps} taps ${taps<=3?'⚡️':taps<=5?'✨':''}\n${grid}\nStreak: ${streak} 🔥\nguessofday.game`
+  const shareText = `Guess of the Day — Daily #${n} · ${catLabel}\nSolved in ${taps} taps ${taps<=3?'⚡️':taps<=5?'✨':''}\n${grid}\nStreak: ${streak} 🔥\nguessit-dub.pages.dev`
   const secret = (ctx.env as any)?.SHARE_SECRET || 'gotd-v1-secret'
   const token = simpleHash(`${sid}:${date}:${taps}:${secret}`)
   const res = j({ ok:true, shareText, token, taps, puzzleNo:n })

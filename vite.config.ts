@@ -124,7 +124,7 @@ function mockBackend(): Plugin {
           if (!st || !st.completed) return json({ ok: false, error: "puzzle not completed" }, 400);
           const grid = st.asked.map((a: any) => (a.result ? "🟩" : "🟥")).join("") || "—";
           const catLabel = getDailyCategory(date).label;
-          const shareText = `Guess of the Day — Daily #${puzzleNumber(date)} · ${catLabel}\nSolved in ${st.taps} taps ${st.taps <= 3 ? "⚡️" : st.taps <= 5 ? "✨" : ""}\n${grid}\nStreak: ${sess.streak.count} 🔥\nguessofday.game`;
+          const shareText = `Guess of the Day — Daily #${puzzleNumber(date)} · ${catLabel}\nSolved in ${st.taps} taps ${st.taps <= 3 ? "⚡️" : st.taps <= 5 ? "✨" : ""}\n${grid}\nStreak: ${sess.streak.count} 🔥\nguessit-dub.pages.dev`;
           return json({ ok: true, shareText, token: simpleHash(`${sid}:${date}:${st.taps}:gotd-v1-secret`), taps: st.taps, puzzleNo: puzzleNumber(date) });
         }
 
