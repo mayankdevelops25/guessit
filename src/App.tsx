@@ -230,13 +230,49 @@ export default function App() {
     return () => window.removeEventListener('hashchange', onHash)
   }, [])
 
+  const [docHistory, setDocHistory] = useState<DocId[]>([])
+
+  const goHome = () => {
+    setDocHistory([])
+    if (window.location.hash.startsWith('#/docs')) {
+      try {
+        history.pushState("", document.title, window.location.pathname + window.location.search)
+      } catch {
+        window.location.hash = ""
+      }
+    }
+    setDocView(null)
+    setShowArchive(false)
+    setShowHowTo(false)
+    setShowShare(false)
+    setShowPrefs(false)
+    if (gameState === 'playing') {
+      analytics.abandon({ date: selectedDate, taps, remaining, at: 'exit' })
+    }
+    setGameState('start')
+  }
+
   const openDoc = (id: DocId) => {
+    setDocHistory(prev => (docView ? [...prev, docView] : prev))
     window.location.hash = `/docs/${id}`
     setDocView(id)
   }
   const closeDoc = () => {
-    if (window.location.hash.startsWith('#/docs')) window.history.back()
-    else setDocView(null)
+    if (docHistory.length > 0) {
+      const prev = docHistory[docHistory.length - 1]
+      setDocHistory(h => h.slice(0, -1))
+      window.location.hash = `/docs/${prev}`
+      setDocView(prev)
+    } else {
+      if (window.location.hash.startsWith('#/docs')) {
+        try {
+          history.pushState("", document.title, window.location.pathname + window.location.search)
+        } catch {
+          window.location.hash = ""
+        }
+      }
+      setDocView(null)
+    }
   }
   const acceptAllCookies = () => {
     const p = { essential: true, analytics: true, marketing: false }
@@ -467,7 +503,11 @@ export default function App() {
         serverOk = true
       } catch (e: any) {
         // if server says duplicate or completed, fallback gracefully
-        if (String(e.message).includes('already')) { setChipPending(null); return }
+        if (String(e.message).includes('already')) {
+          restoreFromServer(selectedDate).catch(() => {})
+          setChipPending(null)
+          return
+        }
         result = chip.check(hidden)
       }
     } else {
@@ -476,6 +516,9 @@ export default function App() {
 
     const newCandidates = candidates.filter(a => chip.check(a) === result)
     const eliminated = candidates.filter(a => chip.check(a) !== result).map(a => a.id)
+
+    setChipPending(null)
+
 
     // audio + haptic
     if (result) {
@@ -515,7 +558,6 @@ export default function App() {
     setAsked(nextAsked)
     setCandidates(newCandidates)
     setTaps(t => t + 1)
-    setChipPending(null)
 
     analytics.chipTap({ chipId: chip.id, chipText: chip.text, result, remaining: newCandidates.length, taps: taps + 1 })
     if (serverOk && backendLive === null) setBackendLive(true)
@@ -641,7 +683,23 @@ export default function App() {
   }, [asked, taps, selectedDate, today, practiceMode, streak.count, shareToken])
 
   const copyShare = async () => {
-    try { await navigator.clipboard.writeText(shareText); setCopied(true); setTimeout(() => setCopied(false), 1800) } catch { setCopied(true); setTimeout(() => setCopied(false), 1800) }
+    try { 
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(shareText) 
+      } else {
+        const el = document.createElement('textarea')
+        el.value = shareText
+        document.body.appendChild(el)
+        el.select()
+        document.execCommand('copy')
+        document.body.removeChild(el)
+      }
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800) 
+    } catch { 
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1800) 
+    }
     analytics.share({ date: selectedDate, taps, streak: streak.count })
   }
 
@@ -669,7 +727,7 @@ export default function App() {
   const score = Math.max(200, 1000 - (taps * 95) - (guessAttempts * 70) + (remaining <= 5 ? 50 : 0))
 
   return (
-    <div className="min-h-screen bg-[#FFFBF0] text-[#0F0F0F] selection:bg-[#FFE03C] selection:text-black" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
+    <div className="min-h-[100dvh] bg-[#FFFBF0] text-[#0F0F0F] selection:bg-[#FFE03C] selection:text-black" style={{ fontFamily: 'Inter, system-ui, sans-serif' }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,800&display=swap');
         .font-display { font-family: 'Fraunces', serif; }
@@ -697,14 +755,18 @@ export default function App() {
 
       <header className="sticky top-0 z-40 bg-[#FFFBF0]/80 backdrop-blur-xl border-b border-black/10">
         <div className="max-w-[1080px] mx-auto px-4 sm:px-6 h-[56px] sm:h-[64px] flex items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-black text-white grid place-items-center font-display text-[18px] leading-none tracking-tight">G<span className="text-[#FFE03C]">.</span></div>
+          <button 
+            onClick={goHome} 
+            aria-label="Guess of the Day Home" 
+            className="flex items-center gap-3 text-left hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-xl p-1 -ml-1 cursor-pointer"
+          >
+            <div className="w-9 h-9 rounded-xl bg-black text-white grid place-items-center font-display text-[18px] leading-none tracking-tight shrink-0">G<span className="text-[#FFE03C]">.</span></div>
             <div className="hidden sm:block">
               <div className="font-display text-[18px] leading-none tracking-tight">GUESS OF THE DAY</div>
               <div className="text-[11px] font-bold tracking-[0.14em] text-black/50 -mt-0.5">DAILY DEDUCTION • {getDailyCategory(today).label}</div>
             </div>
             <div className="sm:hidden font-display text-[15px] tracking-tight">GUESS OF THE DAY</div>
-          </div>
+          </button>
 
             <div className="flex items-center gap-1 sm:gap-2">
               {backendLive === false && (
@@ -961,7 +1023,7 @@ export default function App() {
                   </div>
 
                 {/* Scrollable pool constrained to viewport height so chips stay visible */}
-                <div className="mt-3 sm:mt-4 block max-h-[45vh] lg:max-h-[55vh] overflow-y-auto scrollbar-none rounded-xl">
+                <div className="mt-3 sm:mt-4 block max-h-[45dvh] lg:max-h-[55dvh] overflow-y-auto scrollbar-none rounded-xl">
                 <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-8 md:grid-cols-10 lg:grid-cols-13 gap-1.5 sm:gap-2 relative">
                   {pool.map(a => {
                     if (vanishedIds.has(a.id)) return null
@@ -1223,7 +1285,7 @@ export default function App() {
 
         {showArchive && (
           <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm grid place-items-center p-3 sm:p-4" onClick={() => setShowArchive(false)}>
-            <div className="w-full max-w-[720px] bg-[#FFFBF0] rounded-[24px] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden max-h-[92vh] sm:max-h-[85vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="w-full max-w-[720px] bg-[#FFFBF0] rounded-[24px] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden max-h-[92dvh] sm:max-h-[85dvh] flex flex-col" onClick={e => e.stopPropagation()}>
               <div className="bg-black text-white px-4 sm:px-6 py-4 flex items-center justify-between gap-3 shrink-0">
                 <div className="min-w-0">
                   <div className="font-display text-[18px] sm:text-[20px] leading-none">ARCHIVE & PRACTICE</div>
@@ -1349,7 +1411,7 @@ export default function App() {
       {/* How to Play */}
       {showHowTo && (
         <div className="fixed inset-0 z-[55] bg-black/40 backdrop-blur-sm grid place-items-center p-4" onClick={closeHowTo}>
-          <div className="w-full max-w-[500px] bg-[#FFFBF0] rounded-[24px] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-[500px] bg-[#FFFBF0] rounded-[24px] border-2 border-black shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] overflow-hidden max-h-[90dvh] flex flex-col" onClick={e => e.stopPropagation()}>
             <div className="bg-black text-white px-5 py-4 flex items-center justify-between shrink-0">
               <div>
                 <div className="font-display text-[20px] leading-none">HOW TO PLAY</div>

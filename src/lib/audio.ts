@@ -26,16 +26,20 @@ export function setAudioEnabled(v: boolean) {
 function tone(freq: number, duration: number, type: OscillatorType = 'sine', volume = 0.08) {
   const c = getCtx()
   if (!c || !audioEnabled()) return
-  const osc = c.createOscillator()
-  const gain = c.createGain()
-  osc.type = type
-  osc.frequency.value = freq
-  gain.gain.setValueAtTime(volume, c.currentTime)
-  gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
-  osc.connect(gain)
-  gain.connect(c.destination)
-  osc.start(c.currentTime)
-  osc.stop(c.currentTime + duration)
+  try {
+    const osc = c.createOscillator()
+    const gain = c.createGain()
+    osc.type = type
+    osc.frequency.value = freq
+    gain.gain.setValueAtTime(volume, c.currentTime)
+    gain.gain.exponentialRampToValueAtTime(0.001, c.currentTime + duration)
+    osc.connect(gain)
+    gain.connect(c.destination)
+    osc.start(c.currentTime)
+    osc.stop(c.currentTime + duration)
+  } catch (e) {
+    // ignore audio errors to prevent blocking gameplay
+  }
 }
 
 export function playTap() {
