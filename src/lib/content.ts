@@ -172,14 +172,17 @@ export const COUNTRY_CHIPS: ChipDef[] = [
   { id: 'in_asia', text: 'Is it in Asia?', check: a => a.tags.continent === 'asia' },
   { id: 'in_africa', text: 'Is it in Africa?', check: a => a.tags.continent === 'africa' },
   { id: 'in_americas', text: 'Is it in the Americas?', check: a => a.tags.continent === 'north-america' || a.tags.continent === 'south-america' },
+  { id: 'in_oceania', text: 'Is it in Oceania / Pacific?', check: a => a.tags.continent === 'oceania' },
   { id: 'northern_hemisphere', text: 'Is it in the northern hemisphere?', check: a => a.tags.hemisphere === 'north' },
   { id: 'is_island', text: 'Is it an island nation?', check: a => a.tags.island === true },
   { id: 'is_landlocked', text: 'Is it landlocked?', check: a => a.tags.landlocked === true },
   { id: 'big_population', text: 'Does it have over 50 million people?', check: a => a.tags.population === 'large' },
+  { id: 'small_population', text: 'Is its population under 10 million?', check: a => a.tags.population === 'small' },
   { id: 'spanish_speaking', text: 'Is Spanish the main language?', check: a => a.tags.spanishSpeaking === true },
   { id: 'has_monarch', text: 'Does it still have a monarch?', check: a => a.tags.monarchy === true },
   { id: 'hosted_olympics', text: 'Has it hosted the Olympics?', check: a => a.tags.hostedOlympics === true },
   { id: 'cold_climate', text: 'Does it get snowy winters?', check: a => a.tags.coldClimate === true },
+  { id: 'eu_member', text: 'Is it a member of the EU?', check: a => a.tags.euMember === true },
 ]
 
 // ── CATEGORY 3: COMPANIES (50 big-name brands) ─────────────────────────

@@ -294,7 +294,7 @@ export default function App() {
     setShowBanner(true)
   }
 
-  // ranking — deterministic info-gain
+  // ranking — deterministic info-gain with zero-split filtering
   const rankedChips = useMemo(() => {
     const askedIds = new Set(asked.map(a => a.id))
     const remainingChips = chipDefs.filter(c => !askedIds.has(c.id))
@@ -303,11 +303,16 @@ export default function App() {
       const no = candidates.length - yes
       const total = candidates.length
       const score = total === 0 ? 0 : 1 - Math.abs(yes - no) / total
-      return { chip, score }
+      return { chip, score, yes, no }
     })
-    scored.sort((a, b) => b.score - a.score)
-    return scored.slice(0, 6)
-  }, [candidates, asked])
+
+    // Filter out chips that offer zero differentiation among remaining candidates.
+    // E.g. If India, Pakistan, China are left, "Is it in Asia?" has yes=3, no=0.
+    // Asking it provides zero info gain. So we exclude any chip where yes === 0 or no === 0.
+    const useful = scored.filter(s => s.yes > 0 && s.no > 0)
+    useful.sort((a, b) => b.score - a.score)
+    return useful.slice(0, 6)
+  }, [candidates, asked, chipDefs])
 
 
 
