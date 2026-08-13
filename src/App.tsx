@@ -236,7 +236,7 @@ export default function App() {
     setDocHistory([])
     if (window.location.hash.startsWith('#/docs')) {
       try {
-        history.pushState("", document.title, window.location.pathname + window.location.search)
+        window.history.pushState("", document.title, window.location.pathname + window.location.search)
       } catch {
         window.location.hash = ""
       }
@@ -244,7 +244,6 @@ export default function App() {
     setDocView(null)
     setShowArchive(false)
     setShowHowTo(false)
-    setShowShare(false)
     setShowPrefs(false)
     if (gameState === 'playing') {
       analytics.abandon({ date: selectedDate, taps, remaining, at: 'exit' })
@@ -266,7 +265,7 @@ export default function App() {
     } else {
       if (window.location.hash.startsWith('#/docs')) {
         try {
-          history.pushState("", document.title, window.location.pathname + window.location.search)
+          window.history.pushState("", document.title, window.location.pathname + window.location.search)
         } catch {
           window.location.hash = ""
         }
