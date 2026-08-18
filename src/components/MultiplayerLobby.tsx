@@ -7,12 +7,24 @@ import {
   savePlayerProfile,
   multiplayer,
 } from '../lib/multiplayer'
+import { getTwemojiUrl } from '../App'
 
 interface MultiplayerLobbyProps {
   onStartMultiplayerGame: (room: RoomState, myPlayerId: string) => void
   onBack: () => void
   initialRoomCode?: string
 }
+
+const AVATAR_LIST = [
+  { emoji: '🦊', label: 'Cyber Fox' },
+  { emoji: '🐯', label: 'Neon Tiger' },
+  { emoji: '🐼', label: 'Zen Panda' },
+  { emoji: '🦁', label: 'King Lion' },
+  { emoji: '⚡', label: 'Thunder God' },
+  { emoji: '👑', label: 'Crown Knight' },
+  { emoji: '🚀', label: 'Astro Pioneer' },
+  { emoji: '🐲', label: 'Shadow Dragon' },
+]
 
 export default function MultiplayerLobby({
   onStartMultiplayerGame,
@@ -100,12 +112,13 @@ export default function MultiplayerLobby({
       <div className="flex items-center justify-between mb-6">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-[13px] font-extrabold bg-white border border-black/10 rounded-full px-4 py-2 hover:bg-black hover:text-white transition-colors cursor-pointer"
+          className="flex items-center gap-2 text-[13px] font-extrabold bg-white border border-black/10 rounded-full px-4 py-2 hover:bg-black hover:text-white transition-colors cursor-pointer shadow-sm"
         >
           ← BACK TO HOME
         </button>
-        <div className="flex items-center gap-2 bg-[#FFE03C] border border-black rounded-full px-3.5 py-1 text-[11px] font-black tracking-wider">
-          <span>⚔️</span> MULTIPLAYER 1v1
+        <div className="flex items-center gap-2 bg-[#FFE03C] border border-black rounded-full px-3.5 py-1 text-[11px] font-black tracking-wider shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <img src={getTwemojiUrl('⚔️')} alt="Duel" className="w-4 h-4 object-contain" />
+          <span>MULTIPLAYER 1v1</span>
         </div>
       </div>
 
@@ -123,12 +136,16 @@ export default function MultiplayerLobby({
             <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
               <button
                 onClick={handleCopyLink}
-                className="h-11 px-5 rounded-full bg-black text-white font-extrabold text-[13px] flex items-center gap-2 hover:bg-[#222] transition-colors cursor-pointer"
+                className="h-11 px-5 rounded-full bg-black text-white font-extrabold text-[13px] flex items-center gap-2 hover:bg-[#222] transition-colors cursor-pointer shadow-sm"
               >
                 {copied ? '✓ LINK COPIED!' : '📋 COPY INVITE LINK'}
               </button>
               <div className="h-11 px-4 rounded-full bg-[#FFFBF0] border border-black/10 flex items-center gap-2 text-[12px] font-extrabold">
-                <span>{getCategoryById(currentRoom.categoryId).glyph}</span>
+                <img
+                  src={getTwemojiUrl(getCategoryById(currentRoom.categoryId).glyph)}
+                  alt=""
+                  className="w-4 h-4 object-contain"
+                />
                 {getCategoryById(currentRoom.categoryId).label} •{' '}
                 {currentRoom.mode === 'race' ? 'SPEED RACE' : 'TURN-BASED'}
               </div>
@@ -153,8 +170,12 @@ export default function MultiplayerLobby({
                         : 'bg-white border-black/15'
                     }`}
                   >
-                    <div className="w-12 h-12 rounded-xl bg-white border border-black/10 grid place-items-center text-[24px]">
-                      {p.emoji}
+                    <div className="w-12 h-12 rounded-xl bg-white border border-black/10 grid place-items-center shadow-sm">
+                      <img
+                        src={getTwemojiUrl(p.emoji)}
+                        alt={p.name}
+                        className="w-7 h-7 object-contain"
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
@@ -184,7 +205,9 @@ export default function MultiplayerLobby({
               {playerCount < 2 && (
                 <div className="p-4 rounded-2xl border-2 border-dashed border-black/20 flex items-center justify-center text-center bg-black/[0.02]">
                   <div>
-                    <div className="text-[20px] mb-1 animate-bounce">⏳</div>
+                    <div className="w-8 h-8 mx-auto mb-1 animate-bounce grid place-items-center">
+                      <img src={getTwemojiUrl('⏳')} alt="" className="w-6 h-6" />
+                    </div>
                     <div className="font-extrabold text-[13px] text-black/60">
                       Waiting for Opponent...
                     </div>
@@ -256,21 +279,22 @@ export default function MultiplayerLobby({
             {/* Player Profile Customization */}
             <div className="bg-[#FFFBF0] border border-black/10 rounded-2xl p-4 mb-6">
               <div className="text-[11px] font-black tracking-widest text-black/50 uppercase mb-2">
-                YOUR PLAYER PROFILE
+                YOUR PLAYER PROFILE & AVATAR
               </div>
               <div className="flex flex-wrap items-center gap-3">
-                <div className="flex items-center gap-1.5 bg-white border border-black/15 rounded-xl p-1">
-                  {['🦊', '🐯', '🐼', '🦁', '⚡', '👑'].map((em) => (
+                <div className="flex items-center gap-1.5 bg-white border border-black/15 rounded-xl p-1.5">
+                  {AVATAR_LIST.map(({ emoji, label }) => (
                     <button
-                      key={em}
-                      onClick={() => handleSaveEmoji(em)}
-                      className={`w-9 h-9 rounded-lg grid place-items-center text-[18px] transition-transform cursor-pointer ${
-                        profile.emoji === em
-                          ? 'bg-[#FFE03C] scale-110 border border-black'
-                          : 'hover:bg-black/5'
+                      key={emoji}
+                      onClick={() => handleSaveEmoji(emoji)}
+                      title={label}
+                      className={`w-9 h-9 rounded-lg grid place-items-center transition-all cursor-pointer ${
+                        profile.emoji === emoji
+                          ? 'bg-[#FFE03C] scale-110 border-2 border-black shadow-sm'
+                          : 'hover:bg-black/5 opacity-75 hover:opacity-100'
                       }`}
                     >
-                      {em}
+                      <img src={getTwemojiUrl(emoji)} alt={label} className="w-5 h-5 object-contain" />
                     </button>
                   ))}
                 </div>
@@ -356,11 +380,21 @@ export default function MultiplayerLobby({
                               : 'bg-[#FFFBF0] border-black/15 hover:border-black/40'
                           }`}
                         >
-                          <div className="text-[22px] mb-0.5">{c.glyph}</div>
+                          <div className="w-8 h-8 mx-auto mb-1 grid place-items-center">
+                            <img
+                              src={getTwemojiUrl(c.glyph)}
+                              alt={c.label}
+                              className="w-6 h-6 object-contain"
+                            />
+                          </div>
                           <div className="font-extrabold text-[11px] truncate tracking-wide">
                             {c.label}
                           </div>
-                          <div className={`text-[9px] font-bold mt-0.5 ${isSel ? 'text-white/60' : 'text-black/40'}`}>
+                          <div
+                            className={`text-[9px] font-bold mt-0.5 ${
+                              isSel ? 'text-white/60' : 'text-black/40'
+                            }`}
+                          >
                             {c.answers.length} items
                           </div>
                         </button>
