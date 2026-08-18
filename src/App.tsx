@@ -45,6 +45,27 @@ import { type RoomState, multiplayer, getStoredPlayerProfile } from '@/lib/multi
 
 type AskedChip = { id: string; text: string; result: boolean }
 
+/** Convert Unicode emoji string to high-res Twemoji SVG URL */
+export function getTwemojiUrl(emoji: string): string {
+  try {
+    const codePoints: string[] = []
+    for (let i = 0; i < emoji.length; i++) {
+      const code = emoji.codePointAt(i)
+      if (code !== undefined) {
+        if (code !== 0xfe0f && code !== 0x200d) {
+          codePoints.push(code.toString(16))
+        }
+        if (code > 0xffff) i++
+      }
+    }
+    const hex = codePoints.join('-')
+    if (!hex) return ''
+    return `https://cdnjs.cloudflare.com/ajax/libs/twemoji/14.0.2/svg/${hex}.svg`
+  } catch {
+    return ''
+  }
+}
+
 function WikiGlyph({ a, size, rounded }: { a: Answer; size: number; rounded: string }) {
   const [src, setSrc] = useState<string | null>(() => {
     try {
@@ -83,8 +104,8 @@ function WikiGlyph({ a, size, rounded }: { a: Answer; size: number; rounded: str
           height: size,
           fontSize: fs,
           letterSpacing: '-0.02em',
-          background: 'rgba(255,255,255,0.55)',
-          border: '1px solid rgba(0,0,0,0.12)',
+          background: 'linear-gradient(135deg, rgba(255,255,255,0.8), rgba(255,224,60,0.3))',
+          border: '1.5px solid rgba(0,0,0,0.15)',
         }}
       >
         {figureInitials(a)}
@@ -100,7 +121,7 @@ function WikiGlyph({ a, size, rounded }: { a: Answer; size: number; rounded: str
       decoding="async"
       width={size}
       height={size}
-      className={`${rounded} object-cover`}
+      className={`${rounded} object-cover shadow-sm border border-black/10`}
       style={{ width: size, height: size, backgroundColor: '#FFFBF0' }}
       onError={(e) => {
         const t = e.currentTarget as HTMLImageElement
@@ -113,10 +134,10 @@ function WikiGlyph({ a, size, rounded }: { a: Answer; size: number; rounded: str
   )
 }
 
-function Glyph({
+export function Glyph({
   a,
   size = 26,
-  rounded = 'rounded-[4px]',
+  rounded = 'rounded-[6px]',
 }: {
   a: Answer
   size?: number
@@ -131,10 +152,10 @@ function Glyph({
         alt={`Flag of ${a.label}`}
         loading="lazy"
         decoding="async"
-        width={Math.round(size * 1.5)}
+        width={Math.round(size * 1.45)}
         height={size}
-        className={`${rounded} object-cover`}
-        style={{ width: Math.round(size * 1.5), height: size }}
+        className={`${rounded} object-cover shadow-sm border border-black/15`}
+        style={{ width: Math.round(size * 1.45), height: size }}
         onError={(e) => {
           const t = e.currentTarget as HTMLImageElement
           t.onerror = null
@@ -149,38 +170,67 @@ function Glyph({
   const logo = logoUrl(a)
   if (logo) {
     return (
-      <img
-        src={logo}
-        alt={`Logo of ${a.label}`}
-        loading="lazy"
-        decoding="async"
-        width={size}
-        height={size}
-        className={`${rounded} object-contain`}
-        style={{ width: size, height: size }}
-        onError={(e) => {
-          const t = e.currentTarget as HTMLImageElement
-          const fb = logoFallback(a)
-          if (fb && t.src !== fb) {
-            t.src = fb
-            return
-          }
-          t.onerror = null
-          t.style.display = 'none'
-          const p = t.parentElement
-          if (p)
-            p.innerHTML = `<span style="font-size:${Math.round(size * 0.85)}px">${a.emoji}</span>`
-        }}
-      />
+      <div
+        className={`bg-white shadow-sm border border-black/10 grid place-items-center ${rounded} p-1`}
+        style={{ width: size + 6, height: size + 6 }}
+      >
+        <img
+          src={logo}
+          alt={`Logo of ${a.label}`}
+          loading="lazy"
+          decoding="async"
+          width={size}
+          height={size}
+          className="object-contain"
+          style={{ width: size, height: size }}
+          onError={(e) => {
+            const t = e.currentTarget as HTMLImageElement
+            const fb = logoFallback(a)
+            if (fb && t.src !== fb) {
+              t.src = fb
+              return
+            }
+            t.onerror = null
+            t.style.display = 'none'
+            const p = t.parentElement
+            if (p)
+              p.innerHTML = `<span style="font-size:${Math.round(size * 0.85)}px">${a.emoji}</span>`
+          }}
+        />
+      </div>
     )
   }
   // 3) historical figure portrait
   if (a.wiki) {
     return <WikiGlyph a={a} size={size} rounded={rounded} />
   }
-  // 4) emoji for animals, movies, games, food, landmarks
+
+  // 4) High-definition vector Twemoji SVG with fallback
+  const twemoji = getTwemojiUrl(a.emoji)
+  if (twemoji) {
+    return (
+      <img
+        src={twemoji}
+        alt={a.label}
+        loading="lazy"
+        decoding="async"
+        width={size}
+        height={size}
+        className="object-contain drop-shadow-[0_2px_4px_rgba(0,0,0,0.12)] transition-transform duration-200 hover:scale-110"
+        style={{ width: size, height: size }}
+        onError={(e) => {
+          const t = e.currentTarget as HTMLImageElement
+          t.onerror = null
+          t.style.display = 'none'
+          const p = t.parentElement
+          if (p) p.innerHTML = `<span style="font-size:${size}px" class="drop-shadow-sm">${a.emoji}</span>`
+        }}
+      />
+    )
+  }
+
   return (
-    <span style={{ fontSize: size, lineHeight: 1 }} className="drop-shadow-sm">
+    <span style={{ fontSize: size, lineHeight: 1 }} className="drop-shadow-md select-none">
       {a.emoji}
     </span>
   )
@@ -236,7 +286,6 @@ export default function App() {
   const [prefs, setPrefs] = useState(
     () => getConsent() || { essential: true, analytics: true, marketing: false }
   )
-  const [showHowTo, setShowHowTo] = useState(false)
   const [audioOn, setAudioOn] = useState(() => audioEnabled())
 
   // Countdown timer
@@ -353,7 +402,6 @@ export default function App() {
       }
     }
     setDocView(null)
-    setShowHowTo(false)
     setShowPrefs(false)
     if (gameState === 'playing') {
       analytics.abandon({ date: selectedDate, taps, remaining, at: 'exit' })
@@ -555,7 +603,6 @@ export default function App() {
     setGameState('multiplayer_playing')
     window.scrollTo(0, 0)
 
-    // Listen for room updates
     multiplayer.initRoom(room.code, (st) => {
       setMultiplayerRoom({ ...st })
     })
@@ -569,7 +616,7 @@ export default function App() {
     }
   }
 
-  // Chip Tap Handler (Unified Single & Multiplayer)
+  // Chip Tap Handler
   const handleChipTap = async (chip: ChipDef) => {
     if ((gameState !== 'playing' && gameState !== 'multiplayer_playing') || chipPending) return
     playTap()
@@ -635,7 +682,6 @@ export default function App() {
     setCandidates(newCandidates)
     setTaps(nextTaps)
 
-    // Multiplayer progress broadcast
     if (gameState === 'multiplayer_playing' && multiplayerRoom) {
       multiplayer.updatePlayerProgress(myPlayerId, nextTaps, newCandidates.length, chip.text)
       multiplayer.recordChipAsk(myPlayerId, chip.text, result)
@@ -650,7 +696,7 @@ export default function App() {
     })
   }
 
-  // Guess Handler (Unified Single & Multiplayer)
+  // Guess Handler
   const handleGuess = async (answer: Answer) => {
     if (gameState !== 'playing' && gameState !== 'multiplayer_playing') return
 
@@ -749,7 +795,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#FFFBF0] text-[#0F0F0F] font-sans antialiased selection:bg-[#FFE03C] selection:text-black">
-      {/* Global CSS & Animations */}
+      {/* Global CSS & Visual Effects */}
       <style>{`
         @keyframes pop { 0% { transform: scale(0.96); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
         .pop { animation: pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
@@ -794,7 +840,7 @@ export default function App() {
                   setHomeTab('stats')
                   if (gameState !== 'start') setGameState('start')
                 }}
-                className="flex items-center gap-1.5 bg-black text-white rounded-full px-3 py-1.5 h-9 text-[12px] font-extrabold cursor-pointer"
+                className="flex items-center gap-1.5 bg-black text-white rounded-full px-3 py-1.5 h-9 text-[12px] font-extrabold cursor-pointer hover:bg-neutral-800 transition-colors"
                 title={`Current Streak: ${streak.count} days`}
               >
                 <span className="text-[#FFE03C]">🔥</span> {streak.count}
@@ -813,7 +859,7 @@ export default function App() {
             {/* Multiplayer Quick Switch */}
             <button
               onClick={() => setGameState('multiplayer_lobby')}
-              className="h-9 px-3 rounded-full bg-[#FFE03C] border border-black text-[12px] font-extrabold flex items-center gap-1.5 hover:bg-[#FFD700] transition-colors cursor-pointer"
+              className="h-9 px-3 rounded-full bg-[#FFE03C] border border-black text-[12px] font-extrabold flex items-center gap-1.5 hover:bg-[#FFD700] transition-colors cursor-pointer shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
               title="Play Multiplayer"
             >
               <span>⚔️</span>
@@ -878,7 +924,13 @@ export default function App() {
                     <span className="text-[11px] font-black bg-black text-white px-3 py-1 rounded-full uppercase tracking-wider">
                       DAILY #{puzzleNumber(today)}
                     </span>
-                    <span className="text-[20px]">{getDailyCategory(today).glyph}</span>
+                    <span className="w-8 h-8 rounded-full bg-[#FFFBF0] border border-black/10 grid place-items-center shadow-sm">
+                      <img
+                        src={getTwemojiUrl(getDailyCategory(today).glyph)}
+                        alt={getDailyCategory(today).label}
+                        className="w-5 h-5 object-contain"
+                      />
+                    </span>
                   </div>
 
                   <div className="mt-4">
@@ -921,7 +973,13 @@ export default function App() {
                     <span className="text-[11px] font-black bg-[#FFE03C] border border-black px-3 py-1 rounded-full uppercase tracking-wider">
                       🔥 NEW MULTIPLAYER
                     </span>
-                    <span className="text-[20px]">⚔️</span>
+                    <span className="w-8 h-8 rounded-full bg-white border border-black/10 grid place-items-center shadow-sm">
+                      <img
+                        src={getTwemojiUrl('⚔️')}
+                        alt="Duel"
+                        className="w-5 h-5 object-contain"
+                      />
+                    </span>
                   </div>
 
                   <div className="mt-4">
@@ -957,7 +1015,13 @@ export default function App() {
                     <span className="text-[11px] font-black bg-white border border-black/20 px-3 py-1 rounded-full uppercase tracking-wider">
                       FREE PRACTICE
                     </span>
-                    <span className="text-[20px]">🎯</span>
+                    <span className="w-8 h-8 rounded-full bg-[#FFFBF0] border border-black/10 grid place-items-center shadow-sm">
+                      <img
+                        src={getTwemojiUrl('🎯')}
+                        alt="Practice"
+                        className="w-5 h-5 object-contain"
+                      />
+                    </span>
                   </div>
 
                   <div className="mt-4">
@@ -987,7 +1051,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* ── CLEAN TABBED EXPLORATION PANEL (Stats / Archive / How to Play) ── */}
+            {/* ── TABBED EXPLORATION PANEL (Stats / Archive / How to Play) ── */}
             <div className="mt-8 bg-white rounded-[24px] border-2 border-black p-5 sm:p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]">
               {/* Tab Selector Header */}
               <div className="flex flex-wrap items-center gap-2 border-b border-black/10 pb-4">
@@ -1043,8 +1107,12 @@ export default function App() {
                         onClick={() => startPractice(cat.id)}
                         className="p-3.5 rounded-2xl bg-[#FFFBF0] border border-black/15 text-left hover:border-black hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all group cursor-pointer"
                       >
-                        <div className="text-[26px] mb-1 group-hover:scale-110 transition-transform">
-                          {cat.glyph}
+                        <div className="w-10 h-10 rounded-xl bg-white border border-black/10 grid place-items-center mb-2 shadow-sm group-hover:scale-110 transition-transform">
+                          <img
+                            src={getTwemojiUrl(cat.glyph)}
+                            alt={cat.label}
+                            className="w-6 h-6 object-contain"
+                          />
                         </div>
                         <div className="font-extrabold text-[13px] truncate">{cat.label}</div>
                         <div className="text-[11px] text-black/50 mt-0.5">
@@ -1113,7 +1181,6 @@ export default function App() {
                 <div className="pt-4">
                   <div className="grid sm:grid-cols-2 gap-3 max-h-[340px] overflow-y-auto pr-1">
                     {archiveDates.map((d) => {
-                      const ans = getDailyAnswer(d)
                       const cat = getDailyCategory(d)
                       const played = history[d]
                       const isToday = d === today
@@ -1125,7 +1192,13 @@ export default function App() {
                           }`}
                         >
                           <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="text-[20px]">{cat.glyph}</span>
+                            <span className="w-8 h-8 rounded-lg bg-white border border-black/10 grid place-items-center shrink-0">
+                              <img
+                                src={getTwemojiUrl(cat.glyph)}
+                                alt={cat.label}
+                                className="w-5 h-5 object-contain"
+                              />
+                            </span>
                             <div className="min-w-0">
                               <div className="font-extrabold text-[13px] truncate">
                                 {isToday ? 'TODAY' : formatDay(d)} • {cat.label}

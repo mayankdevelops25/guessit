@@ -4,6 +4,7 @@ import {
   type EmoteMessage,
   multiplayer,
 } from '../lib/multiplayer'
+import { getTwemojiUrl } from '../App'
 
 interface MultiplayerHUDProps {
   room: RoomState
@@ -12,7 +13,14 @@ interface MultiplayerHUDProps {
   onLeave: () => void
 }
 
-const EMOTE_OPTIONS = ['🔥', '😱', '👏', '💀', '⚡', '🎯']
+const EMOTE_OPTIONS = [
+  { emoji: '🔥', label: 'Fire' },
+  { emoji: '😱', label: 'Shock' },
+  { emoji: '👏', label: 'Clap' },
+  { emoji: '💀', label: 'Dead' },
+  { emoji: '⚡', label: 'Lightning' },
+  { emoji: '🎯', label: 'Bullseye' },
+]
 
 export default function MultiplayerHUD({
   room,
@@ -58,13 +66,15 @@ export default function MultiplayerHUD({
         {activeEmotes.map((e) => (
           <div
             key={e.id}
-            className="absolute bottom-24 right-8 sm:right-16 text-[44px] animate-bounce"
+            className="absolute bottom-24 right-8 sm:right-16 flex flex-col items-center"
             style={{
               animation: 'floatUp 2.5s ease-out forwards',
             }}
           >
-            <span className="drop-shadow-lg">{e.emoji}</span>
-            <span className="block text-[10px] font-black bg-black text-white px-2 py-0.5 rounded-full text-center mt-1">
+            <div className="w-14 h-14 p-1 rounded-2xl bg-white/90 backdrop-blur-sm border-2 border-black shadow-lg grid place-items-center animate-bounce">
+              <img src={getTwemojiUrl(e.emoji)} alt="" className="w-10 h-10 object-contain drop-shadow-md" />
+            </div>
+            <span className="text-[10px] font-black bg-black text-white px-2 py-0.5 rounded-full text-center mt-1 shadow-sm">
               {e.senderName}
             </span>
           </div>
@@ -73,10 +83,10 @@ export default function MultiplayerHUD({
 
       <style>{`
         @keyframes floatUp {
-          0% { transform: translateY(0px) scale(0.5); opacity: 0; }
-          20% { transform: translateY(-40px) scale(1.2); opacity: 1; }
-          80% { transform: translateY(-180px) scale(1); opacity: 1; }
-          100% { transform: translateY(-240px) scale(0.8); opacity: 0; }
+          0% { transform: translateY(0px) scale(0.6); opacity: 0; }
+          15% { transform: translateY(-30px) scale(1.15); opacity: 1; }
+          80% { transform: translateY(-190px) scale(1); opacity: 1; }
+          100% { transform: translateY(-260px) scale(0.7); opacity: 0; }
         }
       `}</style>
 
@@ -85,8 +95,12 @@ export default function MultiplayerHUD({
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2 sm:gap-4">
           {/* Player 1 (You) */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="w-10 h-10 rounded-xl bg-[#FFE03C] border border-black grid place-items-center text-[20px] shrink-0">
-              {myPlayer?.emoji || '👤'}
+            <div className="w-11 h-11 rounded-xl bg-[#FFE03C] border-2 border-black grid place-items-center shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <img
+                src={getTwemojiUrl(myPlayer?.emoji || '🦊')}
+                alt="You"
+                className="w-7 h-7 object-contain"
+              />
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 truncate">
@@ -127,12 +141,20 @@ export default function MultiplayerHUD({
                     <span className="font-black text-black">{opponent.taps}</span> taps
                   </>
                 ) : (
-                  <span className="text-amber-600">Waiting for join</span>
+                  <span className="text-amber-600 font-bold">Waiting for opponent</span>
                 )}
               </div>
             </div>
-            <div className="w-10 h-10 rounded-xl bg-black text-white border border-black grid place-items-center text-[20px] shrink-0">
-              {opponent?.emoji || '⏳'}
+            <div className="w-11 h-11 rounded-xl bg-black text-white border-2 border-black grid place-items-center shrink-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]">
+              {opponent ? (
+                <img
+                  src={getTwemojiUrl(opponent.emoji)}
+                  alt={opponent.name}
+                  className="w-7 h-7 object-contain"
+                />
+              ) : (
+                <span className="text-[18px] animate-pulse">⏳</span>
+              )}
             </div>
           </div>
         </div>
@@ -158,14 +180,14 @@ export default function MultiplayerHUD({
             <span className="text-[10px] font-black tracking-wider text-black/40 hidden xs:inline">
               REACT:
             </span>
-            {EMOTE_OPTIONS.map((em) => (
+            {EMOTE_OPTIONS.map(({ emoji, label }) => (
               <button
-                key={em}
-                onClick={() => handleSendEmote(em)}
-                className="w-7 h-7 rounded-lg bg-[#FFFBF0] border border-black/10 hover:border-black hover:scale-125 transition-transform grid place-items-center text-[14px] cursor-pointer"
-                title={`Send ${em}`}
+                key={emoji}
+                onClick={() => handleSendEmote(emoji)}
+                className="w-8 h-8 rounded-lg bg-[#FFFBF0] border border-black/15 hover:border-black hover:scale-125 transition-all grid place-items-center cursor-pointer shadow-sm"
+                title={`Send ${label}`}
               >
-                {em}
+                <img src={getTwemojiUrl(emoji)} alt={label} className="w-5 h-5 object-contain" />
               </button>
             ))}
           </div>
@@ -185,7 +207,13 @@ export default function MultiplayerHUD({
       {room.status === 'ended' && winner && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-white rounded-[28px] border-4 border-black p-6 sm:p-8 max-w-[480px] w-full text-center shadow-[10px_10px_0px_0px_rgba(0,0,0,1)] animate-in fade-in zoom-in-95 duration-200">
-            <div className="text-[56px] mb-2">{isWinner ? '🏆' : '💀'}</div>
+            <div className="w-16 h-16 mx-auto mb-2 grid place-items-center">
+              <img
+                src={getTwemojiUrl(isWinner ? '🏆' : '💀')}
+                alt=""
+                className="w-14 h-14 object-contain animate-bounce"
+              />
+            </div>
 
             <div className="font-display text-[32px] sm:text-[40px] leading-tight">
               {isWinner ? 'VICTORY!' : `${winner.name.toUpperCase()} WON!`}
