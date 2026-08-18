@@ -903,9 +903,9 @@ export default function App() {
               </div>
 
               <h1 className="font-display text-[44px] sm:text-[68px] leading-[0.92] tracking-[-0.03em]">
-                GUESS THE{' '}
+                GUESS OF THE{' '}
                 <span className="relative inline-block">
-                  <span className="relative z-10">SECRET</span>
+                  <span className="relative z-10">DAY</span>
                   <span className="absolute inset-x-[-4px] bottom-[4px] sm:bottom-[8px] h-[16px] sm:h-[22px] bg-[#FFE03C] -rotate-[1deg] -z-0" />
                 </span>
               </h1>
